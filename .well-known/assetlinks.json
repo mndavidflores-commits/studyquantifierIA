@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.mndavidflores.studyquantifier",
+        "sha256_cert_fingerprints": ["F5:5A:E0:8C:41:D7:BE:1C:3B:4F:56:79:24:B2:B9:B1:C0:DC:91:20:B1:1E:32:2B:97:D1:3D:9B:FF:16:5F:F0"]
+      }
+    }]

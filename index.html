@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Studyquantifier</title>
+  <meta name="description" content="A deliberate practice and study quantification dashboard with Pomodoro timer, topic mastery metrics, sleep tracking, and review scheduling.">
+  <meta property="og:title" content="Studyquantifier">
+  <meta property="og:description" content="A deliberate practice and study quantification dashboard with Pomodoro timer, topic mastery metrics, sleep tracking, and review scheduling.">
+
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0d0d1a">
+
+  <script src="https://unpkg.com/dexie@3.2.4/dist/dexie.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&family=Lexend+Deca:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/componentes.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/metrics.css">
+  <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+<div class="app-container">
+  <div id="auth-section">
+    <span id="auth-status">Loading...</span>
+    <button id="btn-login" style="display:none;">Sign in with Google</button>
+    <button id="btn-guest" class="primary" style="display:none; margin-left:8px;">Continue as Guest</button>
+    <button id="btn-logout" style="display:none;">Sign out</button>
+  </div>
+
+  <div id="app-content" style="display:none;">
+    <header id="topbar">
+      <div class="brand">
+        <div class="app-name">studyquantifier</div>
+        <div id="user-email" class="user-email">Not signed in</div>
+      </div>
+      <nav class="tab-nav" id="tabNav">
+        <button class="tab-btn active" data-panel="panelSession">Session</button>
+        <button class="tab-btn" data-panel="panelMetrics">Metrics</button>
+        <button class="tab-btn" data-panel="panelComparison">Comparison</button>
+        <button class="tab-btn" data-panel="panelGoals">Goals</button>
+        <button class="tab-btn" data-panel="panelSleep">Sleep</button>
+        <button class="tab-btn" data-panel="panelHistory">History</button>
+        <button class="tab-btn" data-panel="panelConjectures">Conjectures</button>
+        <button class="tab-btn" data-panel="panelNotes">Notes</button>
+        <button class="tab-btn" data-panel="panelChecklist">Checklist</button>
+      </nav>
+      <div class="topbar-icons">
+        <button id="btnExport" title="Export">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
+        <button id="btnImport" title="Import">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </button>
+        <button id="btnLoadSyllabus" title="Load syllabus">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+        </button>
+        <button id="btnSyncNow" title="Sync">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        </button>
+        <button id="btnLogoutTop" title="Sign out">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+      </div>
+      <input type="file" id="importFile" accept=".json" style="display:none">
+      <input type="file" id="syllabusFile" accept=".json" style="display:none">
+    </header>
+
+    <div id="panelSession" class="panel active">
+      <div id="main-area">
+        <div id="idle-view">
+          <div class="card config-card">
+            <h3>Session setup</h3>
+            <div class="grid-2">
+              <div>
+                <label>Phase</label>
+                <select id="selPhase">
+                  <option value="A">A</option>
+                  <option value="B0">B0</option>
+                  <option value="B1">B1</option>
+                </select>
+              </div>
+              <div>
+                <label>Mode</label>
+                <select id="selMode">
+                  <option value="A">A</option>
+                  <option value="B">B</option>
+                  <option value="C">C</option>
+                  <option value="EXT-S">EXT-S</option>
+                </select>
+              </div>
+              <div>
+                <label>Subject</label>
+                <select id="selSubject"></select>
+              </div>
+              <div id="wrap-sel-subtopic">
+                <label>Subtopic</label>
+                <select id="selSubtopic"></select>
+              </div>
+              <div id="wrap-sel-book">
+                <label>Book</label>
+                <select id="selBook"></select>
+              </div>
+              <div id="wrap-sel-chapter">
+                <label>Chapter</label>
+                <select id="selChapter"></select>
+              </div>
+              <div id="wrap-sel-section">
+                <label>Section</label>
+                <select id="selSection"></select>
+              </div>
+              <div id="wrap-sel-recall-group" style="display:none; grid-column: 1 / -1;">
+                <label>Pending recall group</label>
+                <div id="recallGroupList" class="recall-group-list">
+                  <div class="recall-group-item disabled">Select a recall group...</div>
+                </div>
+              </div>
+            </div>
+            <div id="addSubjectRow" style="display:none; margin-top:6px;">
+              <input type="text" id="newSubject" placeholder="New subject">
+              <button id="btnAddSubject">Add</button>
+            </div>
+            <div id="addSubtopicRow" style="display:none; margin-top:6px;">
+              <input type="text" id="newSubtopic" placeholder="New subtopic">
+              <button id="btnAddSubtopic">Add</button>
+            </div>
+            <div id="addSectionRow" style="display:none; margin-top:6px;">
+              <input type="text" id="newSection" placeholder="New section">
+              <button id="btnAddSection">Add</button>
+            </div>
+          </div>
+
+          <div class="card pomo-card">
+            <h3>Pomodoro</h3>
+            <button id="btnTogglePomodoroMode" class="toggle-btn" style="margin-bottom:8px;">Mode: Countdown</button>
+            <div class="pomo-circle" id="pomoCircle">90:00</div>
+            <div id="pomoStatus">Focus</div>
+            <div class="btn-row" id="pomoControls">
+              <button class="primary" id="btnPomoStart">Start</button>
+              <button id="btnPomoPause" style="display:none;">Pause</button>
+              <button id="btnPomoResume" style="display:none;">Resume</button>
+              <button id="btnPomoStop" class="danger" style="display:none;">Stop</button>
+              <button id="btnPomoReset" style="display:none;">Reset</button>
+            </div>
+            <div id="pomoTimeInputs" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">
+              <div><label>Focus (min)</label><input type="number" id="pomoWork" value="90" min="1"></div>
+              <div><label>Break (min)</label><input type="number" id="pomoBreak" value="20" min="1"></div>
+            </div>
+            <div class="btn-row" style="margin-top:10px;">
+              <label style="margin:0;">Reading</label>
+              <button id="btnReadingStart">▶</button>
+              <button id="btnReadingStop">⏹</button>
+              <span id="readingTotal" class="mono">0:00</span>
+            </div>
+            <button id="btnDistract" class="action-btn" style="margin-top:8px;">I got distracted</button>
+          </div>
+        </div>
+
+        <div id="active-view">
+          <div id="pomo-float">
+            <span id="pomoFloatTime" class="timer">90:00</span>
+            <button id="btnPomoPauseFloat">⏯</button>
+            <button id="btnPomoStopFloat">⏹</button>
+            <button id="btnPomoResetFloat">🔄</button>
+            <button id="btnReadingToggleFloat" title="Reading">
+              <span id="readingIconFloat">▶</span>
+              <span id="readingTotalFloat">0:00</span>
+            </button>
+            <button id="btnDistractFloat" title="I got distracted (key 'd')">⚠</button>
+          </div>
+
+          <div id="left-panel" class="card">
+            <h4>History of <span id="nombreSubtopicHistory">—</span></h4>
+            <div class="table-wrap" id="subtopicHistoryTableWrap"></div>
+          </div>
+
+          <div id="central-zone">
+            <div id="problema-config" class="btn-row">
+              <div id="input-num-problem">
+                <label>Problem #</label>
+                <input type="number" id="numProblem" value="1" min="1">
+              </div>
+              <div id="sel-pending-mistake" style="display:none;">
+                <label>Pending problem</label>
+                <select id="selPendingMistake"></select>
+              </div>
+              <div>
+                <label>Problem type</label>
+                <select id="selProblemType">
+                  <option value="practica">Practice</option>
+                  <option value="eval_inmediata">Immediate eval</option>
+                  <option value="eval_diferida">Deferred eval</option>
+                  <option value="colchon">Buffer</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="timer-display" id="timerDisplay">00:00.0</div>
+            <div id="timerLabel">Paused</div>
+
+            <div id="conjecture-inline" class="conjecture-line">
+              <label>Conjecture</label>
+              <input type="text" id="conjectureText" placeholder="Write your conjecture...">
+              <button id="btnSaveConjecture" class="primary small">Save</button>
+            </div>
+
+            <div id="cardResult" class="card" style="display:none;">
+              <h3>Result</h3>
+              <div id="timeShown"></div>
+              <div id="formResultA">
+                <div class="grid-2">
+                  <div>
+                    <label>Result</label>
+                    <div class="toggle-group" id="toggleResult">
+                      <button class="toggle-btn" data-val="correct">Correct</button>
+                      <button class="toggle-btn" data-val="incorrect">Incorrect</button>
+                      <button class="toggle-btn" data-val="unresolved">Unresolved</button>
+                    </div>
+                  </div>
+                  <div id="divErrorCode" style="display:none;">
+                    <label>Error</label>
+                    <select id="selErrorCode"></select>
+                  </div>
+                  <div id="divProblemNote" style="display:none;">
+                    <label>Note</label>
+                    <input type="text" id="problemNote" placeholder="Why you didn't reach the answer">
+                  </div>
+                  <div id="divConfidence">
+                    <label>Confidence</label>
+                    <select id="selConfidence">
+                      <option value="3" selected>3</option>
+                      <option value="1">1</option>
+                      <option value="2">2</option>
+                      <option value="4">4</option>
+                      <option value="5">5</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label>Bloom</label>
+                    <select id="selBloom">
+                      <option value="3" selected>3</option>
+                      <option value="1">1</option>
+                      <option value="2">2</option>
+                      <option value="4">4</option>
+                      <option value="5">5</option>
+                      <option value="6">6</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label>Difficulty</label>
+                    <select id="selDifficulty">
+                      <option value="3" selected>3</option>
+                      <option value="1">1</option>
+                      <option value="2">2</option>
+                      <option value="4">4</option>
+                      <option value="5">5</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label>Attempts</label>
+                    <input type="number" id="numAttempts" value="1" min="1">
+                  </div>
+                </div>
+                <div class="btn-row">
+                  <button id="btnDiscardProblem">Discard</button>
+                  <button id="btnNextProblem" class="primary">Next problem</button>
+                </div>
+              </div>
+              <div id="formResultB" style="display:none;">
+                <div class="grid-2">
+                  <div>
+                    <label>Rating</label>
+                    <div class="toggle-group" id="toggleRating">
+                      <button class="toggle-btn" data-val="correct">Correct</button>
+                      <button class="toggle-btn" data-val="incorrect">Incorrect</button>
+                    </div>
+                  </div>
+                  <div>
+                    <label><input type="checkbox" id="chkConsultedSolution" style="width:auto;"> Consulted solution/hint</label>
+                  </div>
+                </div>
+                <div class="btn-row">
+                  <button id="btnDiscardReview">Discard</button>
+                  <button id="btnSaveReview" class="primary">Save review</button>
+                </div>
+              </div>
+            </div>
+
+            <div id="session-conjectures-wrap" class="card" style="display:none;">
+              <h3>Session conjectures</h3>
+              <div id="sessionConjecturesList"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Metrics panel -->
+    <div class="panel" id="panelMetrics">
+      <div class="metric-dashboard">
+        <div class="metric-top-row">
+          <div class="card metric-profile">
+            <div class="avatar">DF</div>
+            <div class="user-info">
+              <div class="user-name">David Flores</div>
+              <div class="user-register">Registered: <span id="registrationDate">--</span></div>
+              <div class="user-streak">🔥 Current streak: <span id="currentStreak">0</span> days</div>
+              <div class="progress-bar"><div class="progress-fill" id="levelProgress" style="width:0%;"></div></div>
+            </div>
+          </div>
+          <div class="metric-stats">
+            <div class="stat-item"><div class="stat-value" id="totalSessions">0</div><div class="stat-label">Sessions studied</div></div>
+            <div class="stat-item"><div class="stat-value" id="totalProblemsA">0</div><div class="stat-label">Problems (Type A)</div></div>
+            <div class="stat-item"><div class="stat-value" id="totalTime">0:00:00</div><div class="stat-label">Time studied</div></div>
+          </div>
+        </div>
+
+        <div class="metric-middle-row">
+          <div class="card metric-card-horizontal">
+            <div class="metric-horizontal-item"><div class="metric-horizontal-label">Correct</div><div class="metric-horizontal-value" id="totalCorrect">0</div></div>
+            <div class="metric-horizontal-item"><div class="metric-horizontal-label">Incorrect</div><div class="metric-horizontal-value" id="totalIncorrect">0</div></div>
+            <div class="metric-horizontal-item"><div class="metric-horizontal-label">Unresolved</div><div class="metric-horizontal-value" id="totalUnresolved">0</div></div>
+            <div class="metric-horizontal-item"><div class="metric-horizontal-label">Reviews</div><div class="metric-horizontal-value" id="totalReviews">0</div></div>
+          </div>
+          <div class="card metric-card-horizontal">
+            <div class="metric-horizontal-item"><div class="metric-horizontal-label">Conjectures created</div><div class="metric-horizontal-value" id="totalConjectures">0</div></div>
+            <div class="metric-horizontal-item"><div class="metric-horizontal-label">Hours studied today</div><div class="metric-horizontal-value" id="hoursToday">0.0 h</div></div>
+          </div>
+        </div>
+
+        <div class="card heatmap-card">
+          <h3>Activity — last 12 months</h3>
+          <div id="heatmapContainer" class="heatmap-container"></div>
+        </div>
+
+        <div class="card chart-card">
+          <div class="chart-filters" id="chartFilters"></div>
+          <div class="chart-wrapper"><canvas id="chartProblems"></canvas></div>
+          <div class="chart-toggles">
+            <button id="toggleAvg10" class="chart-toggle-btn active">Avg 10</button>
+            <button id="toggleShowA" class="chart-toggle-btn active">Show A</button>
+            <button id="toggleShowB" class="chart-toggle-btn active">Show B</button>
+          </div>
+        </div>
+
+        <div class="card chart-card">
+          <h3>Memory evolution (FSRS)</h3>
+          <div class="chart-wrapper"><canvas id="chartFSRS"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Comparison panel -->
+    <div class="panel" id="panelComparison">
+      <div class="metric-dashboard">
+        <div class="card">
+          <h3>Comparison</h3>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:20px;">
+            <div><label>Date</label><input type="date" id="comparisonDate"></div>
+            <div><label>Subject</label><select id="comparisonSubject"><option value="All">All</option></select></div>
+            <div><label>Week</label><input type="week" id="comparisonWeek"></div>
+          </div>
+        </div>
+        <div class="card"><h3>Today</h3><div id="comparisonToday"></div></div>
+        <div class="card">
+          <h3>Selected day</h3>
+          <div id="comparisonDay"></div>
+          <div class="chart-wrapper"><canvas id="comparisonChartDay"></canvas></div>
+        </div>
+        <div class="card"><h3>Week</h3><div id="comparisonWeekSummary"></div></div>
+      </div>
+    </div>
+
+    <!-- Goals panel -->
+    <div class="panel" id="panelGoals">
+      <div class="card">
+        <h3>Goal settings</h3>
+        <div style="margin-bottom:10px;">
+          <label>Active days for the daily goal</label>
+          <div class="btn-row" id="activeGoalDays">
+            <button class="toggle-btn" data-day="1">M</button>
+            <button class="toggle-btn" data-day="2">T</button>
+            <button class="toggle-btn" data-day="3">W</button>
+            <button class="toggle-btn" data-day="4">T</button>
+            <button class="toggle-btn" data-day="5">F</button>
+            <button class="toggle-btn" data-day="6">S</button>
+            <button class="toggle-btn" data-day="0">S</button>
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <div><label>Daily goal (h)</label><input type="number" id="dailyGoal" value="3" step="0.5"></div>
+          <div><label>Weekly goal (h)</label><input type="number" id="weeklyGoal" value="15" step="0.5"></div>
+        </div>
+        <button class="primary" id="btnSaveGoals" style="margin-top:10px;">Save goals</button>
+      </div>
+      <div class="card">
+        <h3>Progress</h3>
+        <div><strong>Today:</strong> <span id="dailyProgress">0h</span></div>
+        <div class="progress-bar"><div class="progress-fill" id="dailyProgressBar" style="width:0%;background:var(--accent);"></div></div>
+        <div><strong>Week:</strong> <span id="weeklyProgress">0h</span></div>
+        <div class="progress-bar"><div class="progress-fill" id="weeklyProgressBar" style="width:0%;"></div></div>
+      </div>
+    </div>
+
+    <!-- Sleep panel -->
+    <div class="panel" id="panelSleep">
+      <div class="card">
+        <h3>Log sleep</h3>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <div><label>Date</label><input type="date" id="dateSleep"></div>
+          <div><label>Hours slept (calculated)</label><span id="calculatedHours" style="font-size:1.2rem; font-weight:bold; color:var(--accent3);">--</span></div>
+          <div><label>Quality (0-10)</label><input type="number" id="qualitySleep" min="0" max="10" step="0.5"></div>
+          <div><label>Bedtime</label><input type="time" id="bedtimeSleep"></div>
+          <div><label>Wake up</label><input type="time" id="wakeupSleep"></div>
+        </div>
+        <button class="primary" id="btnSaveSleep" style="margin-top:10px;">Save sleep</button>
+      </div>
+      <div class="card">
+        <h3>Full sleep history</h3>
+        <div class="table-wrap" id="sleepHistoryTable"></div>
+      </div>
+      <div class="card">
+        <h3>Sleep evolution</h3>
+        <div class="chart-container"><canvas id="chartSleep"></canvas></div>
+      </div>
+    </div>
+
+    <!-- History panel -->
+    <div class="panel" id="panelHistory">
+      <div class="card" id="historyContainer"></div>
+    </div>
+
+    <!-- Conjectures panel -->
+    <div class="panel" id="panelConjectures">
+      <div class="card" id="conjecturesListFull"></div>
+    </div>
+
+    <!-- Notes panel -->
+    <div class="panel" id="panelNotes">
+      <div class="card">
+        <h3>Note filters</h3>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
+          <div><label>Subject</label><select id="notesFilterSubject"></select></div>
+          <div><label>Subtopic</label><select id="notesFilterSubtopic"></select></div>
+          <div><label>Chapter</label><select id="notesFilterChapter"></select></div>
+        </div>
+        <div class="table-wrap" id="notesList"></div>
+      </div>
+    </div>
+
+    <!-- Checklist panel -->
+    <div class="panel" id="panelChecklist">
+      <div class="card">
+        <h3>Completed topics checklist</h3>
+        <div class="progress-bar"><div class="progress-fill" id="progressChecklist" style="width:0%;"></div></div>
+        <p id="checklistPercent" style="font-size:0.8rem;color:var(--text2);">0% completed</p>
+        <div id="checklistContainer"></div>
+      </div>
+    </div>
+
+    <!-- Session summary modal -->
+    <div class="modal-overlay" id="modalSummary" style="display:none;">
+      <div class="modal">
+        <h3>Session summary</h3>
+        <div id="summaryContent"></div>
+        <label>Frustration (0-10)</label>
+        <input type="number" id="summaryFrustration" min="0" max="10" value="0">
+        <label>Energy (1-5)</label>
+        <select id="summaryEnergy">
+          <option value="3">3</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+        </select>
+        <button class="primary" id="btnSaveSummary">Save session</button>
+        <button id="btnCancelSummary">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Problem detail modal -->
+    <div class="modal-overlay" id="modalProblemDetail" style="display:none;">
+      <div class="modal">
+        <h3>Problem detail</h3>
+        <div id="detailContent"></div>
+        <div class="btn-row">
+          <button id="btnCloseDetail">Close</button>
+          <button id="btnDeleteProblem" class="danger">Delete record</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script type="module" src="./js/main.js"></script>
+</body>
+</html>

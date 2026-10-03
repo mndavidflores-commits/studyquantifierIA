@@ -1,0 +1,8 @@
+{
+  "name": "Studyquantifier",
+  "description": "A deliberate practice and study quantification dashboard with Pomodoro timer, topic mastery metrics, sleep tracking, and review scheduling.",
+  "requestFramePermissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
