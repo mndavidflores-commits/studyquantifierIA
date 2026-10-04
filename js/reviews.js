@@ -336,7 +336,7 @@ export async function editProblem(id) {
     refreshSubtopicHistory();
     const { refreshAll } = await import('./app.js');
     refreshAll();
-    showToast('Problem updated');
+    showToast('Problem updated ✅');
   };
 
   const existingBtn = document.getElementById('btnSaveEdit');

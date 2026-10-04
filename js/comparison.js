@@ -1,15 +1,7 @@
 import { db, state } from './config.js';
 import { todayLocal, formatDate, formatHMS } from './utils.js';
-import { getThemeColors } from './charts.js';
 
 let comparisonChart = null;
-
-export function recolorComparisonChart() {
-  if (comparisonChart) {
-    comparisonChart.destroy();
-    comparisonChart = null;
-  }
-}
 
 // ===================== ISO WEEK HELPER =====================
 /**
@@ -183,16 +175,10 @@ async function renderComparisonChart(dataset, selectedDate, subjectFilter) {
 
   const labels = dates.map(d => d.slice(5));
 
-  const th = getThemeColors();
-
   if (comparisonChart) {
     comparisonChart.data.labels = labels;
     comparisonChart.data.datasets[0].data = hours;
-    comparisonChart.data.datasets[0].backgroundColor = th.accent;
-    comparisonChart.data.datasets[0].borderColor = th.accent;
     comparisonChart.data.datasets[1].data = exercises;
-    comparisonChart.data.datasets[1].backgroundColor = th.paperMute;
-    comparisonChart.data.datasets[1].borderColor = th.paperMute;
     comparisonChart.update();
     return;
   }
@@ -205,18 +191,18 @@ async function renderComparisonChart(dataset, selectedDate, subjectFilter) {
         {
           label: 'Hours',
           data: hours,
-          backgroundColor: th.accent,
-          hoverBackgroundColor: th.accentHover,
-          borderColor: th.accent,
+          backgroundColor: '#ca4754',
+          hoverBackgroundColor: '#e06c78',
+          borderColor: '#ca4754',
           borderWidth: 1,
           borderRadius: 2
         },
         {
           label: 'Exercises',
           data: exercises,
-          backgroundColor: th.paperMute,
-          hoverBackgroundColor: th.paperSoft,
-          borderColor: th.paperMute,
+          backgroundColor: '#3dd6c8',
+          hoverBackgroundColor: '#5fe0d4',
+          borderColor: '#3dd6c8',
           borderWidth: 1,
           borderRadius: 2
         }
@@ -228,29 +214,25 @@ async function renderComparisonChart(dataset, selectedDate, subjectFilter) {
       animation: false,
       plugins: {
         tooltip: {
-          backgroundColor: th.inkSoft,
-          titleColor: th.paper,
-          bodyColor: th.paperSoft,
-          borderColor: th.accent,
-          borderWidth: 1,
-          cornerRadius: 4,
-          padding: 10
+          backgroundColor: '#2c2e31',
+          titleColor: '#d1d0c5',
+          bodyColor: '#d1d0c5',
+          borderColor: '#646669',
+          borderWidth: 1
         },
         legend: {
           display: true,
-          labels: { color: th.paper, font: { family: 'Inter', size: 12, weight: '500' } }
+          labels: { color: '#d1d0c5' }
         }
       },
       scales: {
         x: {
-          ticks: { color: th.paperMute, font: { family: 'JetBrains Mono', size: 10 } },
-          grid: { color: th.inkBorder, borderDash: [2, 2] },
-          border: { display: false }
+          ticks: { color: '#646669' },
+          grid: { color: 'rgba(100,102,105,0.2)', borderDash: [2, 2] }
         },
         y: {
-          ticks: { color: th.paperMute, font: { family: 'JetBrains Mono', size: 10 } },
-          grid: { color: th.inkBorder, borderDash: [2, 2] },
-          border: { display: false }
+          ticks: { color: '#646669' },
+          grid: { color: 'rgba(100,102,105,0.2)', borderDash: [2, 2] }
         }
       }
     }

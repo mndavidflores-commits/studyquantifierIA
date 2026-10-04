@@ -6,28 +6,11 @@ let problemsChart = null;
 let fsrsChart = null;
 let sleepChart = null;
 
-export function getThemeColors() {
-  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
-  return {
-    isLight,
-    ink: isLight ? '#FFF8F0' : '#1E1E24',
-    inkSoft: isLight ? '#F2EAE0' : '#26262D',
-    inkBorder: isLight ? 'rgba(30, 30, 36, 0.10)' : 'rgba(255, 248, 240, 0.08)',
-    paper: isLight ? '#1E1E24' : '#FFF8F0',
-    paperSoft: isLight ? 'rgba(30, 30, 36, 0.75)' : 'rgba(255, 248, 240, 0.70)',
-    paperMute: isLight ? 'rgba(30, 30, 36, 0.50)' : 'rgba(255, 248, 240, 0.45)',
-    accent: '#92140C',
-    accentSoft: isLight ? 'rgba(146, 20, 12, 0.10)' : 'rgba(146, 20, 12, 0.12)',
-    accentHover: '#B01A10'
-  };
-}
-
 // ===================== PROBLEMS SCATTER CHART =====================
 export async function renderProblemsChart() {
   const ctx = document.getElementById('chartProblems')?.getContext('2d');
   if (!ctx) return;
 
-  const th = getThemeColors();
   const problems = await db.sessions.where('type').equals('problem').toArray();
   const filtered = problems.filter(p => p.subject === state.selectedChartSubject);
   filtered.sort((a, b) =>
@@ -38,8 +21,10 @@ export async function renderProblemsChart() {
   const pointsB = filtered.filter(p => p.mode === 'B');
 
   function colorForResult(result) {
-    if (result === 'correct') return th.accent;
-    return th.paperMute;
+    if (result === 'correct') return '#3dd6c8';
+    if (result === 'incorrect') return '#fa5c7c';
+    if (result === 'unresolved') return '#5c7cfa';
+    return '#ffffff';
   }
 
   const dataA = pointsA.map((p, index) => ({
@@ -63,7 +48,7 @@ export async function renderProblemsChart() {
       pointRadius: 5,
       pointHoverRadius: 7,
       pointBackgroundColor: dataA.map(d => colorForResult(d.problem.result)),
-      pointBorderColor: th.inkSoft,
+      pointBorderColor: '#323437',
       pointBorderWidth: 1.5,
       showLine: false,
       type: 'scatter'
@@ -78,7 +63,7 @@ export async function renderProblemsChart() {
       pointHoverRadius: 7,
       pointBackgroundColor: 'transparent',
       pointBorderColor: dataB.map(d => colorForResult(d.problem.result)),
-      pointBorderWidth: 2,
+      pointBorderWidth: 2.5,
       showLine: false,
       type: 'scatter'
     });
@@ -100,9 +85,9 @@ export async function renderProblemsChart() {
       label: 'Avg 10',
       data: averages,
       type: 'line',
-      borderColor: th.accent,
+      borderColor: '#ca4754',
       backgroundColor: 'transparent',
-      borderWidth: 2,
+      borderWidth: 2.5,
       pointRadius: 0,
       tension: 0.35
     });
@@ -121,13 +106,11 @@ export async function renderProblemsChart() {
         animation: false,
         plugins: {
           tooltip: {
-            backgroundColor: th.inkSoft,
-            titleColor: th.paper,
-            bodyColor: th.paperSoft,
-            borderColor: th.accent,
+            backgroundColor: '#2c2e31',
+            titleColor: '#d1d0c5',
+            bodyColor: '#d1d0c5',
+            borderColor: '#646669',
             borderWidth: 1,
-            cornerRadius: 4,
-            padding: 10,
             callbacks: {
               title: (items) => {
                 if (!items.length) return '';
@@ -156,23 +139,20 @@ export async function renderProblemsChart() {
         scales: {
           x: {
             type: 'linear',
-            title: { display: true, text: 'Problem # (sequential)', color: th.paperMute, font: { family: 'Inter', size: 11, weight: '600' } },
+            title: { display: true, text: 'Problem # (sequential)', color: '#646669' },
             ticks: {
-              color: th.paperMute,
+              color: '#646669',
               stepSize: 1,
-              font: { family: 'JetBrains Mono', size: 10 },
               callback: function (value) { return Number.isInteger(value) ? value : ''; }
             },
-            grid: { color: th.inkBorder, borderDash: [2, 2] },
-            border: { display: false }
+            grid: { color: 'rgba(100,102,105,0.2)', borderDash: [2, 2] }
           },
           y: {
-            title: { display: true, text: 'Minutes', color: th.paperMute, font: { family: 'Inter', size: 11, weight: '600' } },
+            title: { display: true, text: 'Minutes', color: '#646669' },
             beginAtZero: true,
             grace: '5%',
-            ticks: { color: th.paperMute, font: { family: 'JetBrains Mono', size: 10 } },
-            grid: { color: th.inkBorder, borderDash: [2, 2] },
-            border: { display: false }
+            ticks: { color: '#646669' },
+            grid: { color: 'rgba(100,102,105,0.2)', borderDash: [2, 2] }
           }
         }
       }
@@ -185,7 +165,6 @@ export async function renderFSRSChart() {
   const ctx = document.getElementById('chartFSRS')?.getContext('2d');
   if (!ctx) return;
 
-  const th = getThemeColors();
   const reviews = await db.reviews.orderBy('date').toArray();
   if (reviews.length === 0) {
     if (fsrsChart) {
@@ -222,20 +201,19 @@ export async function renderFSRSChart() {
           {
             label: 'Average stability',
             data: avgStability,
-            borderColor: th.accent,
-            backgroundColor: th.accentSoft,
-            fill: true,
+            borderColor: '#ca4754',
+            backgroundColor: 'transparent',
             borderWidth: 2,
-            pointRadius: 3,
+            pointRadius: 4,
             tension: 0.3
           },
           {
             label: 'Average difficulty',
             data: avgDifficulty,
-            borderColor: th.paperMute,
+            borderColor: '#646669',
             backgroundColor: 'transparent',
-            borderWidth: 1.5,
-            pointRadius: 3,
+            borderWidth: 2,
+            pointRadius: 4,
             tension: 0.3
           }
         ]
@@ -246,29 +224,25 @@ export async function renderFSRSChart() {
         animation: false,
         plugins: {
           tooltip: {
-            backgroundColor: th.inkSoft,
-            titleColor: th.paper,
-            bodyColor: th.paperSoft,
-            borderColor: th.accent,
-            borderWidth: 1,
-            cornerRadius: 4,
-            padding: 10
+            backgroundColor: '#2c2e31',
+            titleColor: '#d1d0c5',
+            bodyColor: '#d1d0c5',
+            borderColor: '#646669',
+            borderWidth: 1
           },
           legend: {
             display: true,
-            labels: { color: th.paper, font: { family: 'Inter', size: 12, weight: '500' } }
+            labels: { color: '#d1d0c5', font: { family: 'Roboto Mono' } }
           }
         },
         scales: {
           x: {
-            ticks: { color: th.paperMute, font: { family: 'JetBrains Mono', size: 10 } },
-            grid: { color: th.inkBorder, borderDash: [2, 2] },
-            border: { display: false }
+            ticks: { color: '#646669' },
+            grid: { color: 'rgba(100,102,105,0.2)', borderDash: [2, 2] }
           },
           y: {
-            ticks: { color: th.paperMute, font: { family: 'JetBrains Mono', size: 10 } },
-            grid: { color: th.inkBorder, borderDash: [2, 2] },
-            border: { display: false }
+            ticks: { color: '#646669' },
+            grid: { color: 'rgba(100,102,105,0.2)', borderDash: [2, 2] }
           }
         }
       }
@@ -319,7 +293,6 @@ export async function refreshSleepChart() {
   const ctx = document.getElementById('chartSleep')?.getContext('2d');
   if (!ctx) return;
 
-  const th = getThemeColors();
   const records = await db.sleep.orderBy('date').toArray();
   if (records.length === 0) {
     if (sleepChart) {
@@ -357,29 +330,29 @@ export async function refreshSleepChart() {
           {
             label: 'Quality (0-10)',
             data: qualityData,
-            borderColor: th.accent,
+            borderColor: '#ca4754',
             backgroundColor: 'transparent',
             yAxisID: 'y',
             tension: 0.3,
-            pointRadius: 3
+            pointRadius: 4
           },
           {
             label: 'Bedtime',
             data: bedtimeMinutes,
-            borderColor: th.paperMute,
+            borderColor: '#646669',
             backgroundColor: 'transparent',
             yAxisID: 'y1',
             tension: 0.3,
-            pointRadius: 3
+            pointRadius: 4
           },
           {
             label: 'Wake up',
             data: wakeupMinutes,
-            borderColor: th.paperSoft,
+            borderColor: '#3dd6c8',
             backgroundColor: 'transparent',
             yAxisID: 'y1',
             tension: 0.3,
-            pointRadius: 3
+            pointRadius: 4
           }
         ]
       },
@@ -388,21 +361,13 @@ export async function refreshSleepChart() {
         maintainAspectRatio: false,
         animation: false,
         scales: {
-          x: {
-            ticks: { color: th.paperMute, font: { family: 'JetBrains Mono', size: 10 } },
-            grid: { color: th.inkBorder, borderDash: [2, 2] },
-            border: { display: false }
-          },
           y: {
             type: 'linear',
             display: true,
             position: 'left',
             min: 0,
             max: 10,
-            title: { display: true, text: 'Quality (0-10)', color: th.paperMute, font: { family: 'Inter', size: 11, weight: '600' } },
-            ticks: { color: th.paperMute, font: { family: 'JetBrains Mono', size: 10 } },
-            grid: { color: th.inkBorder, borderDash: [2, 2] },
-            border: { display: false }
+            title: { display: true, text: 'Quality (0-10)', color: '#646669' }
           },
           y1: {
             type: 'linear',
@@ -410,11 +375,9 @@ export async function refreshSleepChart() {
             position: 'right',
             min: 0,
             max: 1440,
-            title: { display: true, text: 'Time of day', color: th.paperMute, font: { family: 'Inter', size: 11, weight: '600' } },
+            title: { display: true, text: 'Minutes since midnight', color: '#646669' },
             ticks: {
-              color: th.paperMute,
-              font: { family: 'JetBrains Mono', size: 10 },
-              stepSize: 120,
+              stepSize: 60,
               callback: function (value) {
                 const h24 = Math.floor(value / 60);
                 const m = value % 60;
@@ -423,20 +386,11 @@ export async function refreshSleepChart() {
                 if (h12 === 0) h12 = 12;
                 return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
               }
-            },
-            grid: { drawOnChartArea: false },
-            border: { display: false }
+            }
           }
         },
         plugins: {
           tooltip: {
-            backgroundColor: th.inkSoft,
-            titleColor: th.paper,
-            bodyColor: th.paperSoft,
-            borderColor: th.accent,
-            borderWidth: 1,
-            cornerRadius: 4,
-            padding: 10,
             callbacks: {
               label: function (context) {
                 let label = context.dataset.label || '';
@@ -455,37 +409,11 @@ export async function refreshSleepChart() {
                 return label;
               }
             }
-          },
-          legend: {
-            labels: { color: th.paper, font: { family: 'Inter', size: 12, weight: '500' } }
           }
         }
       }
     });
   }
-}
-
-// ===================== RECOLOR ALL CHARTS =====================
-export async function recolorCharts() {
-  if (problemsChart) {
-    problemsChart.destroy();
-    problemsChart = null;
-    await renderProblemsChart();
-  }
-  if (fsrsChart) {
-    fsrsChart.destroy();
-    fsrsChart = null;
-    await renderFSRSChart();
-  }
-  if (sleepChart) {
-    sleepChart.destroy();
-    sleepChart = null;
-    await refreshSleepChart();
-  }
-  try {
-    const { recolorComparisonChart } = await import('./comparison.js');
-    if (recolorComparisonChart) recolorComparisonChart();
-  } catch (_) {}
 }
 
 // ===================== CHART CONTROLS (CLICK DELEGATION) =====================

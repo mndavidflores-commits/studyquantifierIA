@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" data-theme="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -11,16 +11,15 @@
   <link rel="icon" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="manifest" href="manifest.webmanifest">
-  <meta name="theme-color" content="#1E1E24">
+  <meta name="theme-color" content="#0d0d1a">
 
   <script src="https://unpkg.com/dexie@3.2.4/dist/dexie.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 
-  <!-- Google Fonts: Fraunces, Inter, JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;600;700;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&family=Lexend+Deca:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/componentes.css">
@@ -29,298 +28,172 @@
   <link rel="stylesheet" href="css/responsive.css">
 </head>
 <body>
-<a href="#main-area" class="skip-link">Saltar al contenido principal</a>
-
 <div class="app-container">
-  <!-- Auth Section -->
   <div id="auth-section">
-    <div style="font-family: var(--font-display); font-size: 2rem; font-weight: 700; margin-bottom: 8px;">Studyquantifier</div>
-    <span id="auth-status">Cargando estado de autenticación...</span>
-    <div class="btn-row" style="margin-top: 16px;">
-      <button id="btn-login" class="primary" style="display:none;">Sign in with Google</button>
-      <button id="btn-guest" class="secondary" style="display:none;">Continue as Guest</button>
-      <button id="btn-logout" class="ghost" style="display:none;">Sign out</button>
-    </div>
+    <span id="auth-status">Loading...</span>
+    <button id="btn-login" style="display:none;">Sign in with Google</button>
+    <button id="btn-guest" class="primary" style="display:none; margin-left:8px;">Continue as Guest</button>
+    <button id="btn-logout" style="display:none;">Sign out</button>
   </div>
 
-  <!-- App Content Shell -->
   <div id="app-content" style="display:none;">
-    <!-- Mobile Topbar (< 768px) -->
-    <header id="mobile-header">
-      <button id="btnMobileMenu" class="icon-btn" aria-label="Abrir navegación lateral">
-        <svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-      <div style="font-family: var(--font-display); font-weight: 700; font-size: 1.1rem;">Studyquantifier</div>
-      <button id="btnMobileTheme" class="icon-btn" aria-label="Cambiar tema">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-      </button>
-    </header>
-
-    <div id="sidebarBackdrop" class="sidebar-backdrop"></div>
-
-    <!-- Lateral Sidebar (240px) -->
-    <aside id="sidebar">
-      <div class="sidebar-header">
-        <div class="brand-title">Studyquantifier</div>
+    <header id="topbar">
+      <div class="brand">
+        <div class="app-name">studyquantifier</div>
         <div id="user-email" class="user-email">Not signed in</div>
       </div>
-
-      <!-- Vertical Tab Navigation -->
-      <nav class="sidebar-nav" id="tabNav">
-        <button class="tab-btn active" data-panel="panelSession">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          <span>Session</span>
-        </button>
-        <button class="tab-btn" data-panel="panelMetrics">
-          <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-          <span>Metrics</span>
-        </button>
-        <button class="tab-btn" data-panel="panelComparison">
-          <svg viewBox="0 0 24 24"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><path d="M11 18H8a2 2 0 0 1-2-2V9"/></svg>
-          <span>Comparison</span>
-        </button>
-        <button class="tab-btn" data-panel="panelGoals">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
-          <span>Goals</span>
-        </button>
-        <button class="tab-btn" data-panel="panelSleep">
-          <svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-          <span>Sleep</span>
-        </button>
-        <button class="tab-btn" data-panel="panelHistory">
-          <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><polyline points="12 7 12 12 15 15"/></svg>
-          <span>History</span>
-        </button>
-        <button class="tab-btn" data-panel="panelConjectures">
-          <svg viewBox="0 0 24 24"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
-          <span>Conjectures</span>
-        </button>
-        <button class="tab-btn" data-panel="panelNotes">
-          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-          <span>Notes</span>
-        </button>
-        <button class="tab-btn" data-panel="panelChecklist">
-          <svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-          <span>Checklist</span>
-        </button>
+      <nav class="tab-nav" id="tabNav">
+        <button class="tab-btn active" data-panel="panelSession">Session</button>
+        <button class="tab-btn" data-panel="panelMetrics">Metrics</button>
+        <button class="tab-btn" data-panel="panelComparison">Comparison</button>
+        <button class="tab-btn" data-panel="panelGoals">Goals</button>
+        <button class="tab-btn" data-panel="panelSleep">Sleep</button>
+        <button class="tab-btn" data-panel="panelHistory">History</button>
+        <button class="tab-btn" data-panel="panelConjectures">Conjectures</button>
+        <button class="tab-btn" data-panel="panelNotes">Notes</button>
+        <button class="tab-btn" data-panel="panelChecklist">Checklist</button>
       </nav>
-
-      <!-- Sidebar Utilities Row -->
-      <div class="sidebar-utilities">
-        <button id="btnExport" class="icon-btn" title="Export data" aria-label="Exportar datos">
-          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <div class="topbar-icons">
+        <button id="btnExport" title="Export">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         </button>
-        <button id="btnImport" class="icon-btn" title="Import data" aria-label="Importar datos">
-          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <button id="btnImport" title="Import">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         </button>
-        <button id="btnLoadSyllabus" class="icon-btn" title="Load syllabus" aria-label="Cargar temario">
-          <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        <button id="btnLoadSyllabus" title="Load syllabus">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
         </button>
-        <button id="btnSyncNow" class="icon-btn" title="Sync now" aria-label="Sincronizar">
-          <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        <button id="btnSyncNow" title="Sync">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
         </button>
-      </div>
-
-      <!-- Sidebar Footer -->
-      <div class="sidebar-footer">
-        <button id="themeToggle" class="icon-btn" title="Alternar modo claro/oscuro" aria-label="Cambiar tema">
-          <svg id="themeIcon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-        </button>
-        <button id="btnLogoutTop" class="ghost" title="Sign out" style="padding: 6px 10px; font-size: 0.8rem;">
-          <svg width="14" height="14" viewBox="0 0 24 24" style="stroke: currentColor;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-          <span>Sign out</span>
+        <button id="btnLogoutTop" title="Sign out">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         </button>
       </div>
-
-      <!-- Hidden file inputs -->
       <input type="file" id="importFile" accept=".json" style="display:none">
       <input type="file" id="syllabusFile" accept=".json" style="display:none">
-    </aside>
+    </header>
 
-    <!-- Main Scrollable Area -->
-    <main id="main-area">
-
-      <!-- ==================== SESSION PANEL ==================== -->
-      <div id="panelSession" class="panel active">
-
-        <!-- ESTADO A: Setup View -->
+    <div id="panelSession" class="panel active">
+      <div id="main-area">
         <div id="idle-view">
-          <div class="section-header">
-            <h1 class="section-title">Session</h1>
-            <div class="section-subtitle">Configura tu sesión de estudio</div>
+          <div class="card config-card">
+            <h3>Session setup</h3>
+            <div class="grid-2">
+              <div>
+                <label>Phase</label>
+                <select id="selPhase">
+                  <option value="A">A</option>
+                  <option value="B0">B0</option>
+                  <option value="B1">B1</option>
+                </select>
+              </div>
+              <div>
+                <label>Mode</label>
+                <select id="selMode">
+                  <option value="A">A</option>
+                  <option value="B">B</option>
+                  <option value="C">C</option>
+                  <option value="EXT-S">EXT-S</option>
+                </select>
+              </div>
+              <div>
+                <label>Subject</label>
+                <select id="selSubject"></select>
+              </div>
+              <div id="wrap-sel-subtopic">
+                <label>Subtopic</label>
+                <select id="selSubtopic"></select>
+              </div>
+              <div id="wrap-sel-book">
+                <label>Book</label>
+                <select id="selBook"></select>
+              </div>
+              <div id="wrap-sel-chapter">
+                <label>Chapter</label>
+                <select id="selChapter"></select>
+              </div>
+              <div id="wrap-sel-section">
+                <label>Section</label>
+                <select id="selSection"></select>
+              </div>
+              <div id="wrap-sel-recall-group" style="display:none; grid-column: 1 / -1;">
+                <label>Pending recall group</label>
+                <div id="recallGroupList" class="recall-group-list">
+                  <div class="recall-group-item disabled">Select a recall group...</div>
+                </div>
+              </div>
+            </div>
+            <div id="addSubjectRow" style="display:none; margin-top:6px;">
+              <input type="text" id="newSubject" placeholder="New subject">
+              <button id="btnAddSubject">Add</button>
+            </div>
+            <div id="addSubtopicRow" style="display:none; margin-top:6px;">
+              <input type="text" id="newSubtopic" placeholder="New subtopic">
+              <button id="btnAddSubtopic">Add</button>
+            </div>
+            <div id="addSectionRow" style="display:none; margin-top:6px;">
+              <input type="text" id="newSection" placeholder="New section">
+              <button id="btnAddSection">Add</button>
+            </div>
           </div>
 
-          <div class="idle-grid">
-            <!-- Setup Card (Col 1-4) -->
-            <div class="card config-card">
-              <h3>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                <span>Setup</span>
-              </h3>
-              <div class="grid-2">
-                <div>
-                  <label for="selPhase">Phase</label>
-                  <select id="selPhase">
-                    <option value="A">A</option>
-                    <option value="B0">B0</option>
-                    <option value="B1">B1</option>
-                  </select>
-                </div>
-                <div>
-                  <label for="selMode">Mode</label>
-                  <select id="selMode">
-                    <option value="A">A</option>
-                    <option value="B">B</option>
-                    <option value="C">C</option>
-                    <option value="EXT-S">EXT-S</option>
-                  </select>
-                </div>
-                <div style="grid-column: 1 / -1;">
-                  <label for="selSubject">Subject</label>
-                  <select id="selSubject"></select>
-                </div>
-                <div id="wrap-sel-subtopic" style="grid-column: 1 / -1;">
-                  <label for="selSubtopic">Subtopic</label>
-                  <select id="selSubtopic"></select>
-                </div>
-                <div id="wrap-sel-book">
-                  <label for="selBook">Book</label>
-                  <select id="selBook"></select>
-                </div>
-                <div id="wrap-sel-chapter">
-                  <label for="selChapter">Chapter</label>
-                  <select id="selChapter"></select>
-                </div>
-                <div id="wrap-sel-section" style="grid-column: 1 / -1;">
-                  <label for="selSection">Section</label>
-                  <select id="selSection"></select>
-                </div>
-                <div id="wrap-sel-recall-group" style="display:none; grid-column: 1 / -1;">
-                  <label>Pending recall group</label>
-                  <div id="recallGroupList" class="recall-group-list">
-                    <div class="recall-group-item disabled">Select a recall group...</div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Add entity inputs -->
-              <div id="addSubjectRow" style="display:none; margin-top:12px; gap:8px;">
-                <input type="text" id="newSubject" placeholder="New subject">
-                <button id="btnAddSubject" class="secondary small">Add</button>
-              </div>
-              <div id="addSubtopicRow" style="display:none; margin-top:12px; gap:8px;">
-                <input type="text" id="newSubtopic" placeholder="New subtopic">
-                <button id="btnAddSubtopic" class="secondary small">Add</button>
-              </div>
-              <div id="addSectionRow" style="display:none; margin-top:12px; gap:8px;">
-                <input type="text" id="newSection" placeholder="New section">
-                <button id="btnAddSection" class="secondary small">Add</button>
-              </div>
+          <div class="card pomo-card">
+            <h3>Pomodoro</h3>
+            <button id="btnTogglePomodoroMode" class="toggle-btn" style="margin-bottom:8px;">Mode: Countdown</button>
+            <div class="pomo-circle" id="pomoCircle">90:00</div>
+            <div id="pomoStatus">Focus</div>
+            <div class="btn-row" id="pomoControls">
+              <button class="primary" id="btnPomoStart">Start</button>
+              <button id="btnPomoPause" style="display:none;">Pause</button>
+              <button id="btnPomoResume" style="display:none;">Resume</button>
+              <button id="btnPomoStop" class="danger" style="display:none;">Stop</button>
+              <button id="btnPomoReset" style="display:none;">Reset</button>
             </div>
-
-            <!-- Pomodoro Card (Col 5-12) -->
-            <div class="card pomo-card">
-              <div style="width:100%; display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                <h3 style="margin:0;">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                  <span>Pomodoro</span>
-                </h3>
-                <button id="btnTogglePomodoroMode" class="secondary small">Mode: Countdown</button>
-              </div>
-
-              <!-- Large Timer with SVG Ring -->
-              <div class="pomo-circle-wrap">
-                <svg viewBox="0 0 100 100">
-                  <circle class="pomo-circle-track" cx="50" cy="50" r="46"/>
-                  <circle id="pomoRingProgress" class="pomo-circle-progress" cx="50" cy="50" r="46" stroke-dasharray="289" stroke-dashoffset="0"/>
-                </svg>
-                <div class="pomo-circle" id="pomoCircle">90:00</div>
-              </div>
-
-              <div id="pomoStatus">Focus</div>
-
-              <!-- Controls -->
-              <div class="btn-row" id="pomoControls" style="justify-content:center; margin-bottom:16px;">
-                <button class="primary" id="btnPomoStart">Start</button>
-                <button id="btnPomoPause" class="secondary" style="display:none;">Pause</button>
-                <button id="btnPomoResume" class="primary" style="display:none;">Resume</button>
-                <button id="btnPomoStop" class="danger" style="display:none;">Stop</button>
-                <button id="btnPomoReset" class="ghost" style="display:none;">Reset</button>
-              </div>
-
-              <!-- Focus & Break Inputs -->
-              <div id="pomoTimeInputs" class="grid-2" style="width:100%; max-width:320px; margin-bottom:16px;">
-                <div>
-                  <label for="pomoWork">Focus (min)</label>
-                  <input type="number" id="pomoWork" value="90" min="1">
-                </div>
-                <div>
-                  <label for="pomoBreak">Break (min)</label>
-                  <input type="number" id="pomoBreak" value="20" min="1">
-                </div>
-              </div>
-
-              <!-- Reading Section -->
-              <div class="btn-row" style="align-items:center; justify-content:center; gap:12px; margin-bottom:12px;">
-                <label style="margin:0;">Reading</label>
-                <button id="btnReadingStart" class="icon-btn" aria-label="Start reading">
-                  <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                </button>
-                <button id="btnReadingStop" class="icon-btn" aria-label="Stop reading">
-                  <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
-                </button>
-                <span id="readingTotal" class="mono" style="font-size:0.95rem; font-weight:600; min-width:44px; text-align:left;">0:00</span>
-              </div>
-
-              <button id="btnDistract" class="ghost" style="margin-top:4px;">I got distracted</button>
+            <div id="pomoTimeInputs" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">
+              <div><label>Focus (min)</label><input type="number" id="pomoWork" value="90" min="1"></div>
+              <div><label>Break (min)</label><input type="number" id="pomoBreak" value="20" min="1"></div>
             </div>
+            <div class="btn-row" style="margin-top:10px;">
+              <label style="margin:0;">Reading</label>
+              <button id="btnReadingStart">▶</button>
+              <button id="btnReadingStop">⏹</button>
+              <span id="readingTotal" class="mono">0:00</span>
+            </div>
+            <button id="btnDistract" class="action-btn" style="margin-top:8px;">I got distracted</button>
           </div>
         </div>
 
-        <!-- ESTADO B & C: Active View -->
         <div id="active-view">
-          <!-- Floating Pomodoro Bar (Estado C) -->
           <div id="pomo-float">
             <span id="pomoFloatTime" class="timer">90:00</span>
-            <button id="btnPomoPauseFloat" class="icon-btn" aria-label="Pause/Resume Pomodoro">
-              <svg viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+            <button id="btnPomoPauseFloat">⏯</button>
+            <button id="btnPomoStopFloat">⏹</button>
+            <button id="btnPomoResetFloat">🔄</button>
+            <button id="btnReadingToggleFloat" title="Reading">
+              <span id="readingIconFloat">▶</span>
+              <span id="readingTotalFloat">0:00</span>
             </button>
-            <button id="btnPomoStopFloat" class="icon-btn" aria-label="Stop Pomodoro">
-              <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
-            </button>
-            <button id="btnPomoResetFloat" class="icon-btn" aria-label="Reset Pomodoro">
-              <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-            </button>
-            <button id="btnReadingToggleFloat" class="icon-btn" style="width:auto; padding:0 8px; gap:6px;" title="Reading" aria-label="Toggle Reading">
-              <span id="readingIconFloat"><svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg></span>
-              <span id="readingTotalFloat" class="mono" style="font-size:0.8rem;">0:00</span>
-            </button>
-            <button id="btnDistractFloat" class="icon-btn" title="I got distracted (key 'd')" aria-label="Log distraction">
-              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            </button>
+            <button id="btnDistractFloat" title="I got distracted (key 'd')">⚠</button>
           </div>
 
-          <!-- Left Panel: Session History (Estado C) -->
-          <div id="left-panel">
+          <div id="left-panel" class="card">
             <h4>History of <span id="nombreSubtopicHistory">—</span></h4>
-            <div class="subtopic-history-meta">Session records</div>
             <div class="table-wrap" id="subtopicHistoryTableWrap"></div>
           </div>
 
-          <!-- Central Zone -->
           <div id="central-zone">
-            <!-- Problem Configuration Controls -->
-            <div id="problema-config" class="btn-row" style="margin-bottom: 24px;">
+            <div id="problema-config" class="btn-row">
               <div id="input-num-problem">
-                <label for="numProblem">Problem #</label>
-                <input type="number" id="numProblem" value="1" min="1" style="width: 100px;">
+                <label>Problem #</label>
+                <input type="number" id="numProblem" value="1" min="1">
               </div>
               <div id="sel-pending-mistake" style="display:none;">
-                <label for="selPendingMistake">Pending problem</label>
+                <label>Pending problem</label>
                 <select id="selPendingMistake"></select>
               </div>
               <div>
-                <label for="selProblemType">Problem type</label>
+                <label>Problem type</label>
                 <select id="selProblemType">
                   <option value="practica">Practice</option>
                   <option value="eval_inmediata">Immediate eval</option>
@@ -330,47 +203,38 @@
               </div>
             </div>
 
-            <!-- Problem Timer Display (ESTADO B) -->
             <div class="timer-display" id="timerDisplay">00:00.0</div>
             <div id="timerLabel">Paused</div>
 
-            <!-- Conjecture Bar -->
-            <div id="conjecture-inline">
-              <label for="conjectureText">Conjecture</label>
+            <div id="conjecture-inline" class="conjecture-line">
+              <label>Conjecture</label>
               <input type="text" id="conjectureText" placeholder="Write your conjecture...">
               <button id="btnSaveConjecture" class="primary small">Save</button>
             </div>
 
-            <!-- Result Card (ESTADO C) -->
             <div id="cardResult" class="card" style="display:none;">
-              <h3>
-                <span class="accent-arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg></span>
-                <span>Result</span>
-              </h3>
+              <h3>Result</h3>
               <div id="timeShown"></div>
-
-              <!-- Result Mode A Form -->
               <div id="formResultA">
-                <div style="margin-bottom: 16px;">
-                  <label>Result</label>
-                  <div class="toggle-group" id="toggleResult">
-                    <button class="toggle-btn" data-val="correct">Correct</button>
-                    <button class="toggle-btn" data-val="incorrect">Incorrect</button>
-                    <button class="toggle-btn" data-val="unresolved">Unresolved</button>
+                <div class="grid-2">
+                  <div>
+                    <label>Result</label>
+                    <div class="toggle-group" id="toggleResult">
+                      <button class="toggle-btn" data-val="correct">Correct</button>
+                      <button class="toggle-btn" data-val="incorrect">Incorrect</button>
+                      <button class="toggle-btn" data-val="unresolved">Unresolved</button>
+                    </div>
                   </div>
-                </div>
-
-                <div class="grid-2" style="margin-bottom: 16px;">
                   <div id="divErrorCode" style="display:none;">
-                    <label for="selErrorCode">Error</label>
+                    <label>Error</label>
                     <select id="selErrorCode"></select>
                   </div>
-                  <div id="divProblemNote" style="display:none; grid-column: 1 / -1;">
-                    <label for="problemNote">Note</label>
+                  <div id="divProblemNote" style="display:none;">
+                    <label>Note</label>
                     <input type="text" id="problemNote" placeholder="Why you didn't reach the answer">
                   </div>
                   <div id="divConfidence">
-                    <label for="selConfidence">Confidence</label>
+                    <label>Confidence</label>
                     <select id="selConfidence">
                       <option value="3" selected>3</option>
                       <option value="1">1</option>
@@ -380,7 +244,7 @@
                     </select>
                   </div>
                   <div>
-                    <label for="selBloom">Bloom</label>
+                    <label>Bloom</label>
                     <select id="selBloom">
                       <option value="3" selected>3</option>
                       <option value="1">1</option>
@@ -391,7 +255,7 @@
                     </select>
                   </div>
                   <div>
-                    <label for="selDifficulty">Difficulty</label>
+                    <label>Difficulty</label>
                     <select id="selDifficulty">
                       <option value="3" selected>3</option>
                       <option value="1">1</option>
@@ -401,40 +265,35 @@
                     </select>
                   </div>
                   <div>
-                    <label for="numAttempts">Attempts</label>
+                    <label>Attempts</label>
                     <input type="number" id="numAttempts" value="1" min="1">
                   </div>
                 </div>
-
-                <div class="btn-row" style="justify-content: flex-end;">
-                  <button id="btnDiscardProblem" class="ghost">Discard</button>
+                <div class="btn-row">
+                  <button id="btnDiscardProblem">Discard</button>
                   <button id="btnNextProblem" class="primary">Next problem</button>
                 </div>
               </div>
-
-              <!-- Result Mode B Form -->
               <div id="formResultB" style="display:none;">
-                <div style="margin-bottom: 16px;">
-                  <label>Rating</label>
-                  <div class="toggle-group" id="toggleRating">
-                    <button class="toggle-btn" data-val="correct">Correct</button>
-                    <button class="toggle-btn" data-val="incorrect">Incorrect</button>
+                <div class="grid-2">
+                  <div>
+                    <label>Rating</label>
+                    <div class="toggle-group" id="toggleRating">
+                      <button class="toggle-btn" data-val="correct">Correct</button>
+                      <button class="toggle-btn" data-val="incorrect">Incorrect</button>
+                    </div>
+                  </div>
+                  <div>
+                    <label><input type="checkbox" id="chkConsultedSolution" style="width:auto;"> Consulted solution/hint</label>
                   </div>
                 </div>
-                <div style="margin-bottom: 16px;">
-                  <label style="display:flex; align-items:center; gap:8px; text-transform:none; font-size:0.9rem; color:var(--paper); cursor:pointer;">
-                    <input type="checkbox" id="chkConsultedSolution">
-                    <span>Consulted solution / hint</span>
-                  </label>
-                </div>
-                <div class="btn-row" style="justify-content: flex-end;">
-                  <button id="btnDiscardReview" class="ghost">Discard</button>
+                <div class="btn-row">
+                  <button id="btnDiscardReview">Discard</button>
                   <button id="btnSaveReview" class="primary">Save review</button>
                 </div>
               </div>
             </div>
 
-            <!-- Session Conjectures Card -->
             <div id="session-conjectures-wrap" class="card" style="display:none;">
               <h3>Session conjectures</h3>
               <div id="sessionConjecturesList"></div>
@@ -442,385 +301,204 @@
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- ==================== METRICS PANEL ==================== -->
-      <div class="panel" id="panelMetrics">
-        <div class="main-view-wrapper">
-          <div class="section-header">
-            <h1 class="section-title">Metrics</h1>
-            <div class="section-subtitle">Progreso, precisión y métricas de práctica deliberada</div>
+    <!-- Metrics panel -->
+    <div class="panel" id="panelMetrics">
+      <div class="metric-dashboard">
+        <div class="metric-top-row">
+          <div class="card metric-profile">
+            <div class="avatar">DF</div>
+            <div class="user-info">
+              <div class="user-name">David Flores</div>
+              <div class="user-register">Registered: <span id="registrationDate">--</span></div>
+              <div class="user-streak">🔥 Current streak: <span id="currentStreak">0</span> days</div>
+              <div class="progress-bar"><div class="progress-fill" id="levelProgress" style="width:0%;"></div></div>
+            </div>
           </div>
-
-          <div class="metric-dashboard">
-            <!-- Row 1: Profile + 3 Key Macro Stats -->
-            <div class="metrics-row-1">
-              <div class="card metric-profile-card">
-                <div class="avatar">DF</div>
-                <div class="user-info">
-                  <div class="user-name">David Flores</div>
-                  <div class="user-register">Registered: <span id="registrationDate">--</span></div>
-                  <div class="user-streak">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
-                    <span>Streak:</span>
-                    <span id="currentStreak" class="streak-val">0</span>
-                    <span>days</span>
-                  </div>
-                  <div class="progress-bar" style="margin-top: 8px;">
-                    <div class="progress-fill" id="levelProgress" style="width:0%;"></div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="card macro-stat-card">
-                <div class="stat-value" id="totalSessions">0</div>
-                <div class="stat-label">Sessions studied</div>
-              </div>
-
-              <div class="card macro-stat-card">
-                <div class="stat-value" id="totalProblemsA">0</div>
-                <div class="stat-label">Problems (Type A)</div>
-              </div>
-
-              <div class="card macro-stat-card">
-                <div class="stat-value" id="totalTime">0:00:00</div>
-                <div class="stat-label">Time studied</div>
-              </div>
-            </div>
-
-            <!-- Row 2: 6 Mini-Stats in a Row -->
-            <div class="metrics-row-2">
-              <div class="card mini-stat-card">
-                <div class="mini-stat-label">Correct</div>
-                <div class="mini-stat-value accent" id="totalCorrect">0</div>
-              </div>
-              <div class="card mini-stat-card">
-                <div class="mini-stat-label">Incorrect</div>
-                <div class="mini-stat-value" id="totalIncorrect">0</div>
-              </div>
-              <div class="card mini-stat-card">
-                <div class="mini-stat-label">Unresolved</div>
-                <div class="mini-stat-value" id="totalUnresolved">0</div>
-              </div>
-              <div class="card mini-stat-card">
-                <div class="mini-stat-label">Reviews</div>
-                <div class="mini-stat-value" id="totalReviews">0</div>
-              </div>
-              <div class="card mini-stat-card">
-                <div class="mini-stat-label">Conjectures created</div>
-                <div class="mini-stat-value" id="totalConjectures">0</div>
-              </div>
-              <div class="card mini-stat-card">
-                <div class="mini-stat-label">Hours studied today</div>
-                <div class="mini-stat-value" id="hoursToday">0.0 h</div>
-              </div>
-            </div>
-
-            <!-- Activity Heatmap -->
-            <div class="card heatmap-card">
-              <h3>Activity — last 12 months</h3>
-              <div id="heatmapContainer" class="heatmap-container"></div>
-            </div>
-
-            <!-- Scatter Chart -->
-            <div class="card chart-card">
-              <div class="chart-header">
-                <div class="chart-filters" id="chartFilters"></div>
-                <div class="chart-toggles">
-                  <button id="toggleAvg10" class="badge-pill active">Avg 10</button>
-                  <button id="toggleShowA" class="badge-pill active">Show A</button>
-                  <button id="toggleShowB" class="badge-pill active">Show B</button>
-                </div>
-              </div>
-              <div class="chart-wrapper"><canvas id="chartProblems"></canvas></div>
-            </div>
-
-            <!-- Memory Evolution FSRS Chart -->
-            <div class="card chart-card">
-              <h3>Memory evolution (FSRS)</h3>
-              <div class="chart-wrapper"><canvas id="chartFSRS"></canvas></div>
-            </div>
+          <div class="metric-stats">
+            <div class="stat-item"><div class="stat-value" id="totalSessions">0</div><div class="stat-label">Sessions studied</div></div>
+            <div class="stat-item"><div class="stat-value" id="totalProblemsA">0</div><div class="stat-label">Problems (Type A)</div></div>
+            <div class="stat-item"><div class="stat-value" id="totalTime">0:00:00</div><div class="stat-label">Time studied</div></div>
           </div>
         </div>
-      </div>
 
-      <!-- ==================== COMPARISON PANEL ==================== -->
-      <div class="panel" id="panelComparison">
-        <div class="main-view-wrapper">
-          <div class="section-header">
-            <h1 class="section-title">Comparison</h1>
-            <div class="section-subtitle">Análisis comparativo de sesiones diarias y semanales</div>
+        <div class="metric-middle-row">
+          <div class="card metric-card-horizontal">
+            <div class="metric-horizontal-item"><div class="metric-horizontal-label">Correct</div><div class="metric-horizontal-value" id="totalCorrect">0</div></div>
+            <div class="metric-horizontal-item"><div class="metric-horizontal-label">Incorrect</div><div class="metric-horizontal-value" id="totalIncorrect">0</div></div>
+            <div class="metric-horizontal-item"><div class="metric-horizontal-label">Unresolved</div><div class="metric-horizontal-value" id="totalUnresolved">0</div></div>
+            <div class="metric-horizontal-item"><div class="metric-horizontal-label">Reviews</div><div class="metric-horizontal-value" id="totalReviews">0</div></div>
           </div>
-
-          <div class="metric-dashboard">
-            <div class="card">
-              <h3>Filtros de comparación</h3>
-              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px;">
-                <div>
-                  <label for="comparisonDate">Date</label>
-                  <input type="date" id="comparisonDate">
-                </div>
-                <div>
-                  <label for="comparisonSubject">Subject</label>
-                  <select id="comparisonSubject"><option value="All">All</option></select>
-                </div>
-                <div>
-                  <label for="comparisonWeek">Week</label>
-                  <input type="week" id="comparisonWeek">
-                </div>
-              </div>
-            </div>
-
-            <div class="grid-2">
-              <div class="card">
-                <h3>Today</h3>
-                <div id="comparisonToday"></div>
-              </div>
-              <div class="card">
-                <h3>Selected day</h3>
-                <div id="comparisonDay"></div>
-                <div class="chart-wrapper" style="height: 240px; min-height: 240px; margin-top: 16px;">
-                  <canvas id="comparisonChartDay"></canvas>
-                </div>
-              </div>
-            </div>
-
-            <div class="card">
-              <h3>Weekly summary</h3>
-              <div id="comparisonWeekSummary"></div>
-            </div>
+          <div class="card metric-card-horizontal">
+            <div class="metric-horizontal-item"><div class="metric-horizontal-label">Conjectures created</div><div class="metric-horizontal-value" id="totalConjectures">0</div></div>
+            <div class="metric-horizontal-item"><div class="metric-horizontal-label">Hours studied today</div><div class="metric-horizontal-value" id="hoursToday">0.0 h</div></div>
           </div>
         </div>
-      </div>
 
-      <!-- ==================== GOALS PANEL ==================== -->
-      <div class="panel" id="panelGoals">
-        <div class="main-view-wrapper">
-          <div class="section-header">
-            <h1 class="section-title">Goals</h1>
-            <div class="section-subtitle">Objetivos de estudio diario y semanal</div>
-          </div>
+        <div class="card heatmap-card">
+          <h3>Activity — last 12 months</h3>
+          <div id="heatmapContainer" class="heatmap-container"></div>
+        </div>
 
-          <div class="grid-12">
-            <!-- Goal settings card -->
-            <div class="card" style="grid-column: span 6;">
-              <h3>Goal settings</h3>
-              <div style="margin-bottom:16px;">
-                <label>Active days for the daily goal</label>
-                <div class="btn-row" id="activeGoalDays" style="gap:6px;">
-                  <button class="toggle-btn" data-day="1">M</button>
-                  <button class="toggle-btn" data-day="2">T</button>
-                  <button class="toggle-btn" data-day="3">W</button>
-                  <button class="toggle-btn" data-day="4">T</button>
-                  <button class="toggle-btn" data-day="5">F</button>
-                  <button class="toggle-btn" data-day="6">S</button>
-                  <button class="toggle-btn" data-day="0">S</button>
-                </div>
-              </div>
-              <div class="grid-2" style="margin-bottom:16px;">
-                <div>
-                  <label for="dailyGoal">Daily goal (h)</label>
-                  <input type="number" id="dailyGoal" value="3" step="0.5">
-                </div>
-                <div>
-                  <label for="weeklyGoal">Weekly goal (h)</label>
-                  <input type="number" id="weeklyGoal" value="15" step="0.5">
-                </div>
-              </div>
-              <button class="primary" id="btnSaveGoals">Save goals</button>
-            </div>
-
-            <!-- Progress card -->
-            <div class="card" style="grid-column: span 6;">
-              <h3>Progress</h3>
-              <div style="margin-bottom:16px;">
-                <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-                  <span style="font-weight:600;">Today</span>
-                  <span id="dailyProgress" class="mono">0h</span>
-                </div>
-                <div class="progress-bar">
-                  <div class="progress-fill" id="dailyProgressBar" style="width:0%;"></div>
-                </div>
-              </div>
-              <div>
-                <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-                  <span style="font-weight:600;">Week</span>
-                  <span id="weeklyProgress" class="mono">0h</span>
-                </div>
-                <div class="progress-bar">
-                  <div class="progress-fill" id="weeklyProgressBar" style="width:0%;"></div>
-                </div>
-              </div>
-            </div>
+        <div class="card chart-card">
+          <div class="chart-filters" id="chartFilters"></div>
+          <div class="chart-wrapper"><canvas id="chartProblems"></canvas></div>
+          <div class="chart-toggles">
+            <button id="toggleAvg10" class="chart-toggle-btn active">Avg 10</button>
+            <button id="toggleShowA" class="chart-toggle-btn active">Show A</button>
+            <button id="toggleShowB" class="chart-toggle-btn active">Show B</button>
           </div>
         </div>
-      </div>
 
-      <!-- ==================== SLEEP PANEL ==================== -->
-      <div class="panel" id="panelSleep">
-        <div class="main-view-wrapper">
-          <div class="section-header">
-            <h1 class="section-title">Sleep</h1>
-            <div class="section-subtitle">Registro de descanso y análisis de correlación</div>
-          </div>
-
-          <div class="grid-12">
-            <!-- Log sleep (Col 1-4) -->
-            <div class="card" style="grid-column: span 4;">
-              <h3>Log sleep</h3>
-              <div style="display:flex; flex-direction:column; gap:12px;">
-                <div>
-                  <label for="dateSleep">Date</label>
-                  <input type="date" id="dateSleep">
-                </div>
-                <div>
-                  <label>Hours slept (calculated)</label>
-                  <div id="calculatedHours" class="mono" style="font-size:1.3rem; font-weight:700; color:var(--accent);">--</div>
-                </div>
-                <div>
-                  <label for="qualitySleep">Quality (0-10)</label>
-                  <input type="number" id="qualitySleep" min="0" max="10" step="0.5">
-                </div>
-                <div class="grid-2">
-                  <div>
-                    <label for="bedtimeSleep">Bedtime</label>
-                    <input type="time" id="bedtimeSleep">
-                  </div>
-                  <div>
-                    <label for="wakeupSleep">Wake up</label>
-                    <input type="time" id="wakeupSleep">
-                  </div>
-                </div>
-                <button class="primary" id="btnSaveSleep" style="margin-top:8px;">Save sleep</button>
-              </div>
-            </div>
-
-            <!-- Full sleep history (Col 5-8) -->
-            <div class="card" style="grid-column: span 4;">
-              <h3>Full sleep history</h3>
-              <div class="table-wrap" id="sleepHistoryTable"></div>
-            </div>
-
-            <!-- Sleep evolution chart (Col 9-12) -->
-            <div class="card" style="grid-column: span 4;">
-              <h3>Sleep evolution</h3>
-              <div class="chart-container"><canvas id="chartSleep"></canvas></div>
-            </div>
-          </div>
+        <div class="card chart-card">
+          <h3>Memory evolution (FSRS)</h3>
+          <div class="chart-wrapper"><canvas id="chartFSRS"></canvas></div>
         </div>
       </div>
+    </div>
 
-      <!-- ==================== HISTORY PANEL ==================== -->
-      <div class="panel" id="panelHistory">
-        <div class="main-view-wrapper">
-          <div class="section-header">
-            <h1 class="section-title">History</h1>
-            <div class="section-subtitle">Registro completo de sesiones cronológicas</div>
-          </div>
-
-          <div id="historyContainer"></div>
-        </div>
-      </div>
-
-      <!-- ==================== CONJECTURES PANEL ==================== -->
-      <div class="panel" id="panelConjectures">
-        <div class="main-view-wrapper">
-          <div class="section-header">
-            <h1 class="section-title">Conjectures</h1>
-            <div class="section-subtitle">Hipótesis, dudas y observaciones formuladas durante el estudio</div>
-          </div>
-
-          <div id="conjecturesListFull"></div>
-        </div>
-      </div>
-
-      <!-- ==================== NOTES PANEL ==================== -->
-      <div class="panel" id="panelNotes">
-        <div class="main-view-wrapper">
-          <div class="section-header">
-            <h1 class="section-title">Notes</h1>
-            <div class="section-subtitle">Notas de error y reflexiones por ejercicio</div>
-          </div>
-
-          <div class="card">
-            <h3 style="margin-bottom:16px;">Note filters</h3>
-            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin-bottom:20px;">
-              <div>
-                <label for="notesFilterSubject">Subject</label>
-                <select id="notesFilterSubject"></select>
-              </div>
-              <div>
-                <label for="notesFilterSubtopic">Subtopic</label>
-                <select id="notesFilterSubtopic"></select>
-              </div>
-              <div>
-                <label for="notesFilterChapter">Chapter</label>
-                <select id="notesFilterChapter"></select>
-              </div>
-            </div>
-            <div class="table-wrap" id="notesList"></div>
+    <!-- Comparison panel -->
+    <div class="panel" id="panelComparison">
+      <div class="metric-dashboard">
+        <div class="card">
+          <h3>Comparison</h3>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:20px;">
+            <div><label>Date</label><input type="date" id="comparisonDate"></div>
+            <div><label>Subject</label><select id="comparisonSubject"><option value="All">All</option></select></div>
+            <div><label>Week</label><input type="week" id="comparisonWeek"></div>
           </div>
         </div>
+        <div class="card"><h3>Today</h3><div id="comparisonToday"></div></div>
+        <div class="card">
+          <h3>Selected day</h3>
+          <div id="comparisonDay"></div>
+          <div class="chart-wrapper"><canvas id="comparisonChartDay"></canvas></div>
+        </div>
+        <div class="card"><h3>Week</h3><div id="comparisonWeekSummary"></div></div>
       </div>
+    </div>
 
-      <!-- ==================== CHECKLIST PANEL ==================== -->
-      <div class="panel" id="panelChecklist">
-        <div class="main-view-wrapper">
-          <div class="section-header">
-            <h1 class="section-title">Checklist</h1>
-            <div class="section-subtitle">Seguimiento de temarios y capítulos completados</div>
-          </div>
-
-          <div class="card">
-            <h3>Completed topics checklist</h3>
-            <div class="progress-bar"><div class="progress-fill" id="progressChecklist" style="width:0%;"></div></div>
-            <p id="checklistPercent" class="mono" style="font-size:0.8rem; color:var(--paper-mute); margin-bottom:16px;">0% completed</p>
-            <div id="checklistContainer"></div>
+    <!-- Goals panel -->
+    <div class="panel" id="panelGoals">
+      <div class="card">
+        <h3>Goal settings</h3>
+        <div style="margin-bottom:10px;">
+          <label>Active days for the daily goal</label>
+          <div class="btn-row" id="activeGoalDays">
+            <button class="toggle-btn" data-day="1">M</button>
+            <button class="toggle-btn" data-day="2">T</button>
+            <button class="toggle-btn" data-day="3">W</button>
+            <button class="toggle-btn" data-day="4">T</button>
+            <button class="toggle-btn" data-day="5">F</button>
+            <button class="toggle-btn" data-day="6">S</button>
+            <button class="toggle-btn" data-day="0">S</button>
           </div>
         </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <div><label>Daily goal (h)</label><input type="number" id="dailyGoal" value="3" step="0.5"></div>
+          <div><label>Weekly goal (h)</label><input type="number" id="weeklyGoal" value="15" step="0.5"></div>
+        </div>
+        <button class="primary" id="btnSaveGoals" style="margin-top:10px;">Save goals</button>
       </div>
+      <div class="card">
+        <h3>Progress</h3>
+        <div><strong>Today:</strong> <span id="dailyProgress">0h</span></div>
+        <div class="progress-bar"><div class="progress-fill" id="dailyProgressBar" style="width:0%;background:var(--accent);"></div></div>
+        <div><strong>Week:</strong> <span id="weeklyProgress">0h</span></div>
+        <div class="progress-bar"><div class="progress-fill" id="weeklyProgressBar" style="width:0%;"></div></div>
+      </div>
+    </div>
 
-      <!-- Session summary modal -->
-      <div class="modal-overlay" id="modalSummary" style="display:none;">
-        <div class="modal">
-          <h3>Session summary</h3>
-          <div id="summaryContent" style="margin-bottom:16px; font-family:var(--font-mono); font-size:0.85rem;"></div>
-          <div style="margin-bottom:12px;">
-            <label for="summaryFrustration">Frustration (0-10)</label>
-            <input type="number" id="summaryFrustration" min="0" max="10" value="0">
-          </div>
-          <div style="margin-bottom:20px;">
-            <label for="summaryEnergy">Energy (1-5)</label>
-            <select id="summaryEnergy">
-              <option value="3">3</option>
-              <option value="1">1</option>
-              <option value="2">2</option>
-              <option value="4">4</option>
-              <option value="5">5</option>
-            </select>
-          </div>
-          <div class="btn-row" style="justify-content: flex-end;">
-            <button id="btnCancelSummary" class="ghost">Cancel</button>
-            <button class="primary" id="btnSaveSummary">Save session</button>
-          </div>
+    <!-- Sleep panel -->
+    <div class="panel" id="panelSleep">
+      <div class="card">
+        <h3>Log sleep</h3>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <div><label>Date</label><input type="date" id="dateSleep"></div>
+          <div><label>Hours slept (calculated)</label><span id="calculatedHours" style="font-size:1.2rem; font-weight:bold; color:var(--accent3);">--</span></div>
+          <div><label>Quality (0-10)</label><input type="number" id="qualitySleep" min="0" max="10" step="0.5"></div>
+          <div><label>Bedtime</label><input type="time" id="bedtimeSleep"></div>
+          <div><label>Wake up</label><input type="time" id="wakeupSleep"></div>
+        </div>
+        <button class="primary" id="btnSaveSleep" style="margin-top:10px;">Save sleep</button>
+      </div>
+      <div class="card">
+        <h3>Full sleep history</h3>
+        <div class="table-wrap" id="sleepHistoryTable"></div>
+      </div>
+      <div class="card">
+        <h3>Sleep evolution</h3>
+        <div class="chart-container"><canvas id="chartSleep"></canvas></div>
+      </div>
+    </div>
+
+    <!-- History panel -->
+    <div class="panel" id="panelHistory">
+      <div class="card" id="historyContainer"></div>
+    </div>
+
+    <!-- Conjectures panel -->
+    <div class="panel" id="panelConjectures">
+      <div class="card" id="conjecturesListFull"></div>
+    </div>
+
+    <!-- Notes panel -->
+    <div class="panel" id="panelNotes">
+      <div class="card">
+        <h3>Note filters</h3>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
+          <div><label>Subject</label><select id="notesFilterSubject"></select></div>
+          <div><label>Subtopic</label><select id="notesFilterSubtopic"></select></div>
+          <div><label>Chapter</label><select id="notesFilterChapter"></select></div>
+        </div>
+        <div class="table-wrap" id="notesList"></div>
+      </div>
+    </div>
+
+    <!-- Checklist panel -->
+    <div class="panel" id="panelChecklist">
+      <div class="card">
+        <h3>Completed topics checklist</h3>
+        <div class="progress-bar"><div class="progress-fill" id="progressChecklist" style="width:0%;"></div></div>
+        <p id="checklistPercent" style="font-size:0.8rem;color:var(--text2);">0% completed</p>
+        <div id="checklistContainer"></div>
+      </div>
+    </div>
+
+    <!-- Session summary modal -->
+    <div class="modal-overlay" id="modalSummary" style="display:none;">
+      <div class="modal">
+        <h3>Session summary</h3>
+        <div id="summaryContent"></div>
+        <label>Frustration (0-10)</label>
+        <input type="number" id="summaryFrustration" min="0" max="10" value="0">
+        <label>Energy (1-5)</label>
+        <select id="summaryEnergy">
+          <option value="3">3</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+        </select>
+        <button class="primary" id="btnSaveSummary">Save session</button>
+        <button id="btnCancelSummary">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Problem detail modal -->
+    <div class="modal-overlay" id="modalProblemDetail" style="display:none;">
+      <div class="modal">
+        <h3>Problem detail</h3>
+        <div id="detailContent"></div>
+        <div class="btn-row">
+          <button id="btnCloseDetail">Close</button>
+          <button id="btnDeleteProblem" class="danger">Delete record</button>
         </div>
       </div>
-
-      <!-- Problem detail modal -->
-      <div class="modal-overlay" id="modalProblemDetail" style="display:none;">
-        <div class="modal">
-          <h3>Problem detail</h3>
-          <div id="detailContent" style="margin-bottom:16px; font-family:var(--font-mono); font-size:0.85rem;"></div>
-          <div class="btn-row" style="justify-content: space-between;">
-            <button id="btnDeleteProblem" class="danger">Delete record</button>
-            <button id="btnCloseDetail" class="secondary">Close</button>
-          </div>
-        </div>
-      </div>
-
-    </main>
+    </div>
   </div>
 </div>
-
 <div class="toast" id="toast"></div>
 <script type="module" src="./js/main.js"></script>
 </body>

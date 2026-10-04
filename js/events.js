@@ -27,68 +27,13 @@ export function initEvents() {
   const tabNav = document.getElementById('tabNav');
   if (tabNav) {
     tabNav.addEventListener('click', e => {
-      const btn = e.target.closest('.tab-btn');
-      if (!btn) return;
+      if (!e.target.classList.contains('tab-btn')) return;
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
+      e.target.classList.add('active');
       document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-      const target = document.getElementById(btn.dataset.panel);
+      const target = document.getElementById(e.target.dataset.panel);
       if (target) target.classList.add('active');
       refreshActivePanels();
-
-      // Close mobile drawer if open
-      const sidebar = document.getElementById('sidebar');
-      const backdrop = document.getElementById('sidebarBackdrop');
-      if (sidebar) sidebar.classList.remove('open');
-      if (backdrop) backdrop.classList.remove('open');
-    });
-  }
-
-  // ===================== THEME TOGGLE =====================
-  const applyTheme = (theme) => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('sq-theme', theme);
-    const sunSvg = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
-    const moonSvg = '<svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
-    const iconHtml = theme === 'dark' ? sunSvg : moonSvg;
-    const themeToggleBtn = document.getElementById('themeToggle');
-    if (themeToggleBtn) themeToggleBtn.innerHTML = iconHtml;
-    const mobileThemeBtn = document.getElementById('btnMobileTheme');
-    if (mobileThemeBtn) mobileThemeBtn.innerHTML = iconHtml;
-  };
-
-  const savedTheme = localStorage.getItem('sq-theme') || 'dark';
-  applyTheme(savedTheme);
-
-  const handleToggleTheme = async () => {
-    const cur = document.documentElement.getAttribute('data-theme') || 'dark';
-    const next = cur === 'dark' ? 'light' : 'dark';
-    applyTheme(next);
-    const { recolorCharts } = await import('./charts.js');
-    if (recolorCharts) recolorCharts();
-  };
-
-  const themeToggle = document.getElementById('themeToggle');
-  if (themeToggle) themeToggle.addEventListener('click', handleToggleTheme);
-  const btnMobileTheme = document.getElementById('btnMobileTheme');
-  if (btnMobileTheme) btnMobileTheme.addEventListener('click', handleToggleTheme);
-
-  // ===================== MOBILE DRAWER =====================
-  const btnMobileMenu = document.getElementById('btnMobileMenu');
-  const sidebar = document.getElementById('sidebar');
-  const sidebarBackdrop = document.getElementById('sidebarBackdrop');
-
-  if (btnMobileMenu && sidebar) {
-    btnMobileMenu.addEventListener('click', () => {
-      sidebar.classList.toggle('open');
-      if (sidebarBackdrop) sidebarBackdrop.classList.toggle('open');
-    });
-  }
-
-  if (sidebarBackdrop && sidebar) {
-    sidebarBackdrop.addEventListener('click', () => {
-      sidebar.classList.remove('open');
-      sidebarBackdrop.classList.remove('open');
     });
   }
 
@@ -283,7 +228,7 @@ export function initEvents() {
     if (state.session.state !== PomodoroState.FOCUS_RUNNING
       && state.session.state !== PomodoroState.BREAK_RUNNING) return;
     state.session.distractions++;
-    showToast('Distraction logged', 1500);
+    showToast('logged ✅', 1500);
   };
   const btnDistract = document.getElementById('btnDistract');
   if (btnDistract) btnDistract.addEventListener('click', logDistraction);
@@ -408,7 +353,7 @@ export function initEvents() {
     document.getElementById('bedtimeSleep').value = '';
     document.getElementById('wakeupSleep').value = '';
     document.getElementById('calculatedHours').textContent = '--';
-    showToast('Sleep logged');
+    showToast('Sleep logged ✅');
     refreshSleepHistory();
     refreshSleepChart();
   });
@@ -423,7 +368,7 @@ export function initEvents() {
     await saveLocalAndOutbox('goals', { key: 'activeGoalDays', value: state.activeGoalDays }, 'userId,key');
 
     refreshGoals();
-    showToast('Goals saved');
+    showToast('Goals saved ✅');
   });
 
   const activeDaysContainer = document.getElementById('activeGoalDays');
@@ -539,7 +484,7 @@ export function initEvents() {
       if (selSubject) selSubject.dispatchEvent(new Event('change'));
       await refreshChecklist();
       await refreshComparison();
-      showToast('Syllabus loaded');
+      showToast('Syllabus loaded ✅');
     } catch (e) {
       console.error(e);
       showToast('Syllabus load error.');
