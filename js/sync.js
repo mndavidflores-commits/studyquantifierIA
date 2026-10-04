@@ -154,37 +154,56 @@ export async function syncAll({ silent = false } = {}) {
  * Writes a record to the local Dexie collection and queues it in the outbox
  * for the next push.
  *
+ * For tables that DO have an `id` column, a UUID is generated (or reused from
+ * `data.id`) and used as the record's primary key and outbox `recordId`.
+ *
+ * For tables WITHOUT an `id` column (see TABLES_WITHOUT_ID), the natural key
+ * (`data.key`) is used as the outbox `recordId` and no `id` field is written
+ * to the local record. This avoids generating throwaway UUIDs that would
+ * never reach the server and could shadow each other in the outbox.
+ *
  * @param {string} collection - Dexie collection name (identical to the Supabase table name)
  * @param {object} data - Record data
  * @param {string} onConflict - Supabase onConflict clause (e.g. "id", "userId,key")
- * @returns {Promise<string|null>} The record id, or null if not authenticated
+ * @returns {Promise<string|null>} The record id (or natural key), or null if not authenticated
  */
 export async function saveLocalAndOutbox(collection, data, onConflict = 'id') {
   if (!state.currentSession?.user) return null;
 
+  const isKeyBased = TABLES_WITHOUT_ID.has(collection);
+
   const id = data.id || crypto.randomUUID();
-  const existing = data.id ? await db[collection].get(id) : null;
+  const recordId = isKeyBased ? data.key : id;
+
+  const existing = isKeyBased
+    ? await db[collection].get(data.key)
+    : (data.id ? await db[collection].get(id) : null);
 
   const record = {
     ...data,
-    id,
     userId: state.currentSession.user.id,
     createdAt: existing?.createdAt || data.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     deletedAt: null
   };
 
+  // Only tables that actually have an `id` column should carry one locally.
+  if (!isKeyBased) {
+    record.id = id;
+  }
+
   await db[collection].put(record);
 
-  // Some server tables don't have an `id` column.
+  // Build the payload for the outbox — strip `id` for key-based tables in
+  // case any caller accidentally passed one in.
   const payload = { ...record };
-  if (TABLES_WITHOUT_ID.has(collection)) {
+  if (isKeyBased) {
     delete payload.id;
   }
 
   await db.outbox.put({
     table: collection,
-    recordId: id,
+    recordId,
     operation: 'insert',
     data: payload,
     onConflict,
@@ -192,13 +211,17 @@ export async function saveLocalAndOutbox(collection, data, onConflict = 'id') {
   });
 
   scheduleSync();
-  return id;
+  return recordId;
 }
 
 // ===================== FIX SESSION ID =====================
 /**
  * After a pomodoro session is created with a real UUID, update all child
  * records (problems + conjectures) that were linked to the temporary session id.
+ *
+ * Before enqueuing the updated versions, any pending outbox entries for these
+ * records are removed — otherwise the server would receive both the old and
+ * new payloads for the same rows, briefly creating duplicate state.
  */
 export async function fixSessionId(tempId, realSessionId) {
   if (!state.currentSession?.user) return;
@@ -206,6 +229,17 @@ export async function fixSessionId(tempId, realSessionId) {
   const now = new Date().toISOString();
 
   const problems = await db.sessions.where('sessionId').equals(tempId).toArray();
+  const conjectures = await db.conjectures.where('sessionId').equals(tempId).toArray();
+
+  // Drop any queued ops for these records before queuing the corrected versions.
+  const staleIds = [
+    ...problems.map(p => p.id),
+    ...conjectures.map(c => c.id)
+  ];
+  if (staleIds.length > 0) {
+    await db.outbox.where('recordId').anyOf(staleIds).delete();
+  }
+
   await db.sessions.where('sessionId').equals(tempId).modify({ sessionId: realSessionId });
   for (const p of problems) {
     await db.outbox.put({
@@ -218,7 +252,6 @@ export async function fixSessionId(tempId, realSessionId) {
     });
   }
 
-  const conjectures = await db.conjectures.where('sessionId').equals(tempId).toArray();
   await db.conjectures.where('sessionId').equals(tempId).modify({ sessionId: realSessionId });
   for (const c of conjectures) {
     await db.outbox.put({

@@ -96,29 +96,33 @@ export async function refreshNotes() {
   const selSubtopic = document.getElementById('notesFilterSubtopic');
   const selChapter = document.getElementById('notesFilterChapter');
 
+  // Capture current filter values before rebuilding the selects.
+  const currentSubject = selSubject?.value || 'All';
+  const currentSubtopic = selSubtopic?.value || 'All';
+  const currentChapter = selChapter?.value || 'All';
+
   // ---- Subject filter ----
   if (selSubject) {
     const syllabusSubjects = [...new Set(state.currentSyllabus.map(t => t.subject))];
     const dbSubjects = await db.subjects.toArray();
     const allSubjects = [...new Set([...syllabusSubjects, ...dbSubjects.map(s => s.name)])];
 
-    const previousSubject = selSubject.value || 'All';
     selSubject.innerHTML = '<option value="All">All</option>'
-      + allSubjects.map(s => `<option value="${s}">${s}</option>`).join('');
+      + allSubjects.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
 
-    // If the previous value no longer exists, fall back to "All"
-    const subjectExists = [...selSubject.options].some(o => o.value === previousSubject);
-    selSubject.value = subjectExists ? previousSubject : 'All';
+    const exists = [...selSubject.options].some(o => o.value === currentSubject);
+    selSubject.value = exists ? currentSubject : 'All';
   }
+
+  const effectiveSubject = selSubject?.value || 'All';
 
   // ---- Subtopic filter ----
   if (selSubtopic) {
-    const selectedSubject = selSubject.value !== 'All' ? selSubject.value : null;
     const subtopics = [];
 
-    if (selectedSubject) {
-      const topics = state.currentSyllabus.filter(t => t.subject === selectedSubject);
-      const extras = await db.extraSubtopics.where('subject').equals(selectedSubject).toArray();
+    if (effectiveSubject !== 'All') {
+      const topics = state.currentSyllabus.filter(t => t.subject === effectiveSubject);
+      const extras = await db.extraSubtopics.where('subject').equals(effectiveSubject).toArray();
       subtopics.push(...topics.map(t => ({ id: String(t.id), name: t.name })));
       subtopics.push(...extras.map(e => ({ id: 'extra_' + e.id, name: e.name })));
     } else {
@@ -128,32 +132,40 @@ export async function refreshNotes() {
       subtopics.push(...extras.map(e => ({ id: 'extra_' + e.id, name: e.name })));
     }
 
-    const previousSubtopic = selSubtopic.value || 'All';
     selSubtopic.innerHTML = '<option value="All">All</option>'
-      + subtopics.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+      + subtopics.map(s => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`).join('');
 
-    const subtopicExists = [...selSubtopic.options].some(o => o.value === previousSubtopic);
-    selSubtopic.value = subtopicExists ? previousSubtopic : 'All';
+    const exists = [...selSubtopic.options].some(o => o.value === currentSubtopic);
+    selSubtopic.value = exists ? currentSubtopic : 'All';
   }
 
-  // ---- Chapter filter ----
+  const effectiveSubtopic = selSubtopic?.value || 'All';
+
+  // ---- Chapter filter (only chapters present in notes matching subject+subtopic) ----
   if (selChapter) {
     const chapters = new Set();
-    notes.forEach(n => { if (n.chapter) chapters.add(n.chapter); });
+    notes.forEach(n => {
+      if (effectiveSubject !== 'All' && n.subject !== effectiveSubject) return;
+      if (effectiveSubtopic !== 'All' && n.subtopicId !== effectiveSubtopic) return;
+      if (n.chapter) chapters.add(n.chapter);
+    });
 
-    const previousChapter = selChapter.value || 'All';
     selChapter.innerHTML = '<option value="All">All</option>'
-      + [...chapters].map(c => `<option value="${c}">${c}</option>`).join('');
+      + [...chapters].sort().map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
 
-    const chapterExists = [...selChapter.options].some(o => o.value === previousChapter);
-    selChapter.value = chapterExists ? previousChapter : 'All';
+    const exists = [...selChapter.options].some(o => o.value === currentChapter);
+    selChapter.value = exists ? currentChapter : 'All';
   }
 
   // ---- Apply filters ----
+  const filterSubject = selSubject?.value || 'All';
+  const filterSubtopic = selSubtopic?.value || 'All';
+  const filterChapter = selChapter?.value || 'All';
+
   const filtered = notes.filter(n => {
-    if (selSubject && selSubject.value !== 'All' && n.subject !== selSubject.value) return false;
-    if (selSubtopic && selSubtopic.value !== 'All' && n.subtopicId !== selSubtopic.value) return false;
-    if (selChapter && selChapter.value !== 'All' && n.chapter !== selChapter.value) return false;
+    if (filterSubject !== 'All' && n.subject !== filterSubject) return false;
+    if (filterSubtopic !== 'All' && n.subtopicId !== filterSubtopic) return false;
+    if (filterChapter !== 'All' && n.chapter !== filterChapter) return false;
     return true;
   });
 
@@ -165,13 +177,26 @@ export async function refreshNotes() {
   let html = '<table><tr><th>Subject</th><th>Subtopic</th><th>Problem</th><th>Chapter</th><th>Note</th></tr>';
   filtered.forEach(n => {
     html += `<tr>
-      <td>${n.subject || ''}</td>
-      <td>${n.subtopicName || n.subtopicId || ''}</td>
-      <td>${n.problemNumber || '-'}</td>
-      <td>${n.chapter || '-'}</td>
-      <td>${n.note}</td>
+      <td>${escapeHtml(n.subject || '')}</td>
+      <td>${escapeHtml(n.subtopicName || n.subtopicId || '')}</td>
+      <td>${n.problemNumber ?? '-'}</td>
+      <td>${escapeHtml(n.chapter || '-')}</td>
+      <td>${escapeHtml(n.note)}</td>
     </tr>`;
   });
   html += '</table>';
   wrap.innerHTML = html;
+}
+
+// ===================== HTML ESCAPING (local helper) =====================
+// NOTE: eventualmente se consolidará en utils.js — otras copias viven en
+// comparison.js, conjectures.js y metrics.js.
+function escapeHtml(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }

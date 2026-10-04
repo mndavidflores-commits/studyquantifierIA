@@ -19,7 +19,8 @@ export async function populateSubjects() {
     sel.appendChild(opt);
   });
 
-  if (all.length > 0 && sel.options.length > 1) sel.selectedIndex = 1;
+  // Select the first real subject by value (not by index — safer if order changes).
+  if (all.length > 0) sel.value = all[0];
   verifyAddSubject();
 }
 

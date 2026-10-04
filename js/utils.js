@@ -47,22 +47,57 @@ export function todayLocal() {
 }
 
 /**
- * Converts a Date, timestamp, or date string to a local "YYYY-MM-DD" string.
- * - Date objects are used as-is.
- * - Date-only strings ("2026-09-13") are parsed as local midnight, not UTC midnight.
- * - Anything else is passed to `new Date()`.
+ * Converts a Date, timestamp (number), or date string to a local "YYYY-MM-DD" string.
+ *
+ * Accepted inputs:
+ *   - Date object                → used as-is
+ *   - number (ms since epoch)    → new Date(number)
+ *   - "YYYY-MM-DD"               → parsed as LOCAL midnight (not UTC)
+ *   - ISO 8601 string            → new Date(input)
+ *   - anything else              → new Date(input); invalid → today
+ *
+ * Returns a local "YYYY-MM-DD" string. Never throws.
  */
 export function formatDate(input = new Date()) {
   let d;
+
   if (input instanceof Date) {
     d = input;
+  } else if (typeof input === 'number' && Number.isFinite(input)) {
+    // Explicit numeric timestamp (ms since epoch)
+    d = new Date(input);
   } else if (typeof input === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(input)) {
+    // Date-only string → parse as LOCAL midnight, not UTC
     d = new Date(input + 'T00:00:00');
+  } else if (input == null) {
+    d = new Date();
   } else {
     d = new Date(input);
   }
+
+  if (Number.isNaN(d.getTime())) {
+    console.warn('formatDate received an invalid input:', input);
+    d = new Date();
+  }
+
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+// ===================== HTML ESCAPING =====================
+/**
+ * Escapes user-provided strings before injecting them into innerHTML.
+ * Prevents XSS and keeps the output visually faithful when the input
+ * contains `<`, `>`, `&`, `"` or `'`.
+ */
+export function escapeHtml(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }

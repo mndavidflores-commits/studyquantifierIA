@@ -1,8 +1,7 @@
-import { showToast, formatTime, todayLocal } from './utils.js';
+import { showToast, formatTime, todayLocal, escapeHtml } from './utils.js';
 import { db, state, PomodoroState } from './config.js';
 import { saveLocalAndOutbox, syncAll } from './sync.js';
 import { updateBlindDisplay } from './ui.js';
-import { transition } from './pomodoro.js';
 import {
   fsrs,
   generatorParameters,
@@ -10,11 +9,18 @@ import {
   State as FSRSState
 } from 'https://cdn.jsdelivr.net/npm/ts-fsrs@5.4.1/+esm';
 
+// NOTE: `transition` is imported dynamically inside the two handlers below
+// (btnSaveReview, btnDiscardReview) to break the circular dependency that
+// used to exist between `pomodoro.js` and `reviews.js`.
+
 // ===================== PENDING MISTAKES SELECTOR =====================
-document.getElementById('selPendingMistake').addEventListener('change', function () {
-  const mistakeId = this.value;
-  state.selectedMistake = state.pendingMistakes.find(m => String(m.id) === mistakeId) || null;
-});
+const selPendingMistakeEl = document.getElementById('selPendingMistake');
+if (selPendingMistakeEl) {
+  selPendingMistakeEl.addEventListener('change', function () {
+    const mistakeId = this.value;
+    state.selectedMistake = state.pendingMistakes.find(m => String(m.id) === mistakeId) || null;
+  });
+}
 
 export async function showPendingMistakes() {
   const endOfToday = new Date();
@@ -49,6 +55,7 @@ export async function showPendingMistakes() {
   state.pendingMistakes = mistakes;
 
   const select = document.getElementById('selPendingMistake');
+  if (!select) return;
   select.innerHTML = '';
 
   if (mistakes.length === 0) {
@@ -100,8 +107,10 @@ export async function updateUIForMode() {
   const wrapGroup = document.getElementById('wrap-sel-recall-group');
   if (wrapGroup) wrapGroup.style.display = isModeB ? 'block' : 'none';
 
-  document.getElementById('formResultA').style.display = isModeB ? 'none' : 'block';
-  document.getElementById('formResultB').style.display = isModeB ? 'block' : 'none';
+  const formA = document.getElementById('formResultA');
+  const formB = document.getElementById('formResultB');
+  if (formA) formA.style.display = isModeB ? 'none' : 'block';
+  if (formB) formB.style.display = isModeB ? 'block' : 'none';
 
   if (isModeB) {
     const { populateRecallGroups } = await import('./selectors.js');
@@ -113,7 +122,8 @@ export async function updateUIForMode() {
     await populateRecallGroups(subject);
 
     if (!state.currentRecallGroup) {
-      document.getElementById('selPendingMistake').innerHTML = '<option value="">Select a group first</option>';
+      const sel = document.getElementById('selPendingMistake');
+      if (sel) sel.innerHTML = '<option value="">Select a group first</option>';
     } else {
       await showPendingMistakes();
     }
@@ -182,7 +192,7 @@ export async function refreshSubtopicHistory() {
     html += `
       <div class="session-group${openClass}">
         <div class="session-header">
-          <span>Session ${groupsArray.length - index} · ${date}</span>
+          <span>Session ${groupsArray.length - index} · ${escapeHtml(date)}</span>
           <span class="arrow">▶</span>
         </div>
         <div class="session-content">
@@ -196,7 +206,7 @@ export async function refreshSubtopicHistory() {
                   <td>${p.problemNumber || '-'}</td>
                   <td>${formatTime(p.timeSeconds)}</td>
                   <td><span class="${badgeClass}">${badge}</span></td>
-                  <td>${p.mode || '-'}</td>
+                  <td>${escapeHtml(p.mode || '-')}</td>
                 </tr>
               `;
             }).join('')}
@@ -211,15 +221,18 @@ export async function refreshSubtopicHistory() {
 }
 
 // History panel delegation
-document.getElementById('subtopicHistoryTableWrap').addEventListener('click', (e) => {
-  const header = e.target.closest('.session-header');
-  if (header) {
-    header.parentElement.classList.toggle('open');
-    return;
-  }
-  const tr = e.target.closest('.editable-problem');
-  if (tr) editProblem(tr.dataset.problemId);
-});
+const subtopicHistoryWrap = document.getElementById('subtopicHistoryTableWrap');
+if (subtopicHistoryWrap) {
+  subtopicHistoryWrap.addEventListener('click', (e) => {
+    const header = e.target.closest('.session-header');
+    if (header) {
+      header.parentElement.classList.toggle('open');
+      return;
+    }
+    const tr = e.target.closest('.editable-problem');
+    if (tr) editProblem(tr.dataset.problemId);
+  });
+}
 
 // ===================== EDIT PROBLEM =====================
 export async function editProblem(id) {
@@ -228,6 +241,7 @@ export async function editProblem(id) {
 
   const modal = document.getElementById('modalProblemDetail');
   const content = document.getElementById('detailContent');
+  if (!modal || !content) return;
   modal.style.display = 'flex';
 
   const subject = problem.subject;
@@ -264,54 +278,63 @@ export async function editProblem(id) {
         </select>
       </div>
       <div><label>Time (s)</label><input type="number" step="0.1" id="editTime" value="${problem.timeSeconds || 0}"></div>
-      <div><label>Error</label><input type="text" id="editErrorCode" value="${problem.errorCode || ''}"></div>
+      <div><label>Error</label><input type="text" id="editErrorCode" value="${escapeHtml(problem.errorCode || '')}"></div>
       <div><label>Confidence</label><input type="number" id="editConfidence" min="1" max="5" value="${problem.confidence || ''}"></div>
       <div><label>Difficulty</label><input type="number" id="editDifficulty" min="1" max="5" value="${problem.perceivedDifficulty || ''}"></div>
       <div><label>Attempts</label><input type="number" id="editAttempts" min="1" value="${problem.attempts || 1}"></div>
       <div><label>Bloom</label><input type="number" id="editBloom" min="1" max="6" value="${problem.bloomLevel || ''}"></div>
-      <div><label>Note</label><input type="text" id="editNote" value="${problem.note || ''}"></div>
+      <div><label>Note</label><input type="text" id="editNote" value="${escapeHtml(problem.note || '')}"></div>
       <div><label>Section</label>
         <select id="editSection">
-          ${sections.map(s => `<option value="${s}" ${problem.section === s ? 'selected' : ''}>${s}</option>`).join('')}
+          ${sections.map(s => `<option value="${escapeHtml(s)}" ${problem.section === s ? 'selected' : ''}>${escapeHtml(s)}</option>`).join('')}
         </select>
       </div>
       <div><label>Book</label>
         <select id="editBook">
-          ${books.map(b => `<option value="${b}" ${problem.book === b ? 'selected' : ''}>${b}</option>`).join('')}
+          ${books.map(b => `<option value="${escapeHtml(b)}" ${problem.book === b ? 'selected' : ''}>${escapeHtml(b)}</option>`).join('')}
         </select>
       </div>
       <div><label>Chapter</label>
         <select id="editChapter">
-          ${chapters.map(c => `<option value="${c}" ${problem.chapter === c ? 'selected' : ''}>${c}</option>`).join('')}
+          ${chapters.map(c => `<option value="${escapeHtml(c)}" ${problem.chapter === c ? 'selected' : ''}>${escapeHtml(c)}</option>`).join('')}
         </select>
       </div>
     </div>
   `;
 
   const btnDelete = document.getElementById('btnDeleteProblem');
-  btnDelete.style.display = 'inline-block';
-  btnDelete.onclick = async () => {
-    if (!confirm('Delete this problem?')) return;
-    const userId = state.currentSession?.user?.id;
-    const now = new Date().toISOString();
+  if (btnDelete) {
+    btnDelete.style.display = 'inline-block';
+    btnDelete.onclick = async () => {
+      if (!confirm('Delete this problem?')) return;
+      const userId = state.currentSession?.user?.id;
+      const now = new Date().toISOString();
 
-    await db.sessions.delete(id);
-    await db.outbox.put({
-      table: 'sessions',
-      recordId: id,
-      operation: 'delete',
-      data: { id, userId, deletedAt: now },
-      onConflict: 'id',
-      createdAt: now
-    });
-    await syncAll({ silent: true });
-    modal.style.display = 'none';
-    refreshSubtopicHistory();
-    const { refreshAll } = await import('./app.js');
-    refreshAll();
-  };
+      await db.sessions.delete(id);
+      await db.outbox.put({
+        table: 'sessions',
+        recordId: id,
+        operation: 'delete',
+        data: { id, userId, deletedAt: now },
+        onConflict: 'id',
+        createdAt: now
+      });
+      await syncAll({ silent: true });
+      modal.style.display = 'none';
+      refreshSubtopicHistory();
+      const { refreshAll } = await import('./app.js');
+      refreshAll();
+    };
+  }
 
   const btnRow = document.querySelector('#modalProblemDetail .btn-row');
+  if (!btnRow) return;
+
+  // Remove any previous "Save changes" button so re-opening the modal on
+  // the same session doesn't stack buttons.
+  const existingBtn = document.getElementById('btnSaveEdit');
+  if (existingBtn) existingBtn.remove();
+
   const btnSave = document.createElement('button');
   btnSave.textContent = 'Save changes';
   btnSave.className = 'primary';
@@ -339,12 +362,7 @@ export async function editProblem(id) {
     showToast('Problem updated ✅');
   };
 
-  const existingBtn = document.getElementById('btnSaveEdit');
-  if (existingBtn) {
-    btnRow.replaceChild(btnSave, existingBtn);
-  } else {
-    btnRow.insertBefore(btnSave, btnRow.firstChild);
-  }
+  btnRow.insertBefore(btnSave, btnRow.firstChild);
 }
 
 // ===================== SESSION CONJECTURES =====================
@@ -362,7 +380,7 @@ export async function refreshSessionConjectures() {
   let html = '<table><tr><th>Conjecture</th><th>Subject</th><th>Problem</th><th>Subtopic</th><th>Date</th></tr>';
   conjectures.forEach(c => {
     const d = new Date(c.timestamp);
-    html += `<tr><td>${c.text}</td><td>${c.subject || ''}</td><td>${c.problemNumber || ''}</td><td>${c.subtopicId || ''}</td><td>${d.toLocaleTimeString()}</td></tr>`;
+    html += `<tr><td>${escapeHtml(c.text)}</td><td>${escapeHtml(c.subject || '')}</td><td>${c.problemNumber || ''}</td><td>${escapeHtml(c.subtopicId || '')}</td><td>${d.toLocaleTimeString()}</td></tr>`;
   });
   html += '</table>';
   wrap.innerHTML = html;
@@ -461,132 +479,145 @@ export async function createMistakeFromProblem({
 }
 
 // ===================== RATING (MODE B) =====================
-document.getElementById('toggleRating').addEventListener('click', e => {
-  if (!e.target.classList.contains('toggle-btn')) return;
-  document.querySelectorAll('#toggleRating .toggle-btn').forEach(b => b.classList.remove('active'));
-  e.target.classList.add('active');
-});
-
-document.getElementById('btnSaveReview').addEventListener('click', async () => {
-  if (!state.selectedMistake) return;
-
-  const ratingBtn = document.querySelector('#toggleRating .toggle-btn.active');
-  if (!ratingBtn) {
-    showToast('Select a rating.');
-    return;
-  }
-  const rating = ratingBtn.dataset.val === 'correct' ? 3 : 1;
-
-  const g = state.currentRecallGroup;
-  const subject = g ? g.subject : document.getElementById('selSubject').value;
-  const subtopic = g ? g.subtopicId : document.getElementById('selSubtopic').value;
-  const subtopicName = g
-    ? g.subtopicName
-    : (document.getElementById('selSubtopic').selectedOptions[0]?.textContent || '');
-  const book = g ? g.book : document.getElementById('selBook').value;
-  const section = g ? g.section : (document.getElementById('selSection')?.value || null);
-  const chapter = document.getElementById('selChapter')?.value || null;
-  const consultedSolution = document.getElementById('chkConsultedSolution').checked;
-
-  const weights = await getFrozenWeights(subject);
-  const f = createFSRSInstance(weights);
-  const lastReview = await getLastReview(state.selectedMistake.id, state.selectedMistake.createdDate);
-  const rebuiltCard = rebuildCardFromMistake(state.selectedMistake, lastReview);
-  const now = new Date();
-  const outcome = f.next(rebuiltCard, now, rating);
-
-  await saveLocalAndOutbox('reviews', {
-    mistakeId: state.selectedMistake.id,
-    date: todayLocal(),
-    timestamp: now.toISOString(),
-    rating,
-    scheduledDays: outcome.log.scheduled_days,
-    elapsedDays: outcome.log.elapsed_days,
-    recallTimeSeconds: Math.round(state.blindTimer.seconds * 10) / 10,
-    consultedSolution,
-    stability: outcome.card.stability,
-    difficulty: outcome.card.difficulty
+const toggleRatingEl = document.getElementById('toggleRating');
+if (toggleRatingEl) {
+  toggleRatingEl.addEventListener('click', e => {
+    if (!e.target.classList.contains('toggle-btn')) return;
+    toggleRatingEl.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+    e.target.classList.add('active');
   });
+}
 
-  await updateMistakePartial(state.selectedMistake.id, {
-    fsrsStability: outcome.card.stability,
-    fsrsDifficulty: outcome.card.difficulty,
-    fsrsReps: outcome.card.reps,
-    nextReview: outcome.card.due.toISOString()
-  });
+const btnSaveReviewEl = document.getElementById('btnSaveReview');
+if (btnSaveReviewEl) {
+  btnSaveReviewEl.addEventListener('click', async () => {
+    if (!state.selectedMistake) return;
 
-  await saveLocalAndOutbox('sessions', {
-    type: 'problem',
-    date: todayLocal(),
-    timestamp: Date.now(),
-    mode: 'B',
-    phase: document.getElementById('selPhase').value,
-    subject,
-    subtopicId: subtopic,
-    subtopicName,
-    book,
-    chapter,
-    section,
-    timeSeconds: Math.round(state.blindTimer.seconds * 10) / 10,
-    result: rating >= 3 ? 'correct' : 'incorrect',
-    sessionId: state.session.tempId
-  });
-
-  // Reset UI
-  document.getElementById('cardResult').style.display = 'none';
-  document.getElementById('timerDisplay').style.display = 'block';
-  document.getElementById('conjecture-inline').classList.remove('hidden');
-  state.blindTimer.seconds = 0;
-  updateBlindDisplay();
-  state.blindTimer.pendingResult = false;
-  document.querySelectorAll('#toggleRating .toggle-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('chkConsultedSolution').checked = false;
-  state.selectedMistake = null;
-
-  const { populateRecallGroups } = await import('./selectors.js');
-  await populateRecallGroups(subject);
-  await showPendingMistakes();
-
-  const { refreshMetrics } = await import('./metrics.js');
-  const { refreshAll } = await import('./app.js');
-  refreshMetrics();
-  refreshAll();
-  refreshSubtopicHistory();
-
-  document.getElementById('session-conjectures-wrap').style.display = 'block';
-  document.getElementById('left-panel').classList.remove('hidden');
-  refreshSessionConjectures();
-
-  if (state.session.pendingSessionEnd) {
-    state.session.pendingSessionEnd = false;
-    const breakMinutes = parseInt(document.getElementById('pomoBreak').value) || 0;
-    if (breakMinutes > 0) {
-      await transition(PomodoroState.BREAK_RUNNING);
-    } else {
-      await transition(PomodoroState.SESSION_ENDING);
+    const ratingBtn = document.querySelector('#toggleRating .toggle-btn.active');
+    if (!ratingBtn) {
+      showToast('Select a rating.');
+      return;
     }
-  }
-});
+    const rating = ratingBtn.dataset.val === 'correct' ? 3 : 1;
 
-document.getElementById('btnDiscardReview').addEventListener('click', async () => {
-  document.getElementById('cardResult').style.display = 'none';
-  document.getElementById('timerDisplay').style.display = 'block';
-  document.getElementById('conjecture-inline').classList.remove('hidden');
-  state.blindTimer.seconds = 0;
-  updateBlindDisplay();
-  state.blindTimer.pendingResult = false;
-  document.querySelectorAll('#toggleRating .toggle-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('chkConsultedSolution').checked = false;
-  document.getElementById('left-panel').classList.remove('hidden');
-  refreshSubtopicHistory();
+    const g = state.currentRecallGroup;
+    const subject = g ? g.subject : document.getElementById('selSubject').value;
+    const subtopic = g ? g.subtopicId : document.getElementById('selSubtopic').value;
+    const subtopicName = g
+      ? g.subtopicName
+      : (document.getElementById('selSubtopic').selectedOptions[0]?.textContent || '');
+    const book = g ? g.book : document.getElementById('selBook').value;
+    const section = g ? g.section : (document.getElementById('selSection')?.value || null);
+    const chapter = document.getElementById('selChapter')?.value || null;
+    const consultedSolution = document.getElementById('chkConsultedSolution').checked;
 
-  if (state.session.pendingSessionEnd) {
-    state.session.pendingSessionEnd = false;
-    const breakMinutes = parseInt(document.getElementById('pomoBreak').value) || 0;
-    if (breakMinutes > 0) {
-      await transition(PomodoroState.BREAK_RUNNING);
-    } else {
-      await transition(PomodoroState.SESSION_ENDING);
+    const weights = await getFrozenWeights(subject);
+    const f = createFSRSInstance(weights);
+    const lastReview = await getLastReview(state.selectedMistake.id, state.selectedMistake.createdDate);
+    const rebuiltCard = rebuildCardFromMistake(state.selectedMistake, lastReview);
+    const now = new Date();
+    const outcome = f.next(rebuiltCard, now, rating);
+
+    await saveLocalAndOutbox('reviews', {
+      mistakeId: state.selectedMistake.id,
+      date: todayLocal(),
+      timestamp: now.toISOString(),
+      rating,
+      scheduledDays: outcome.log.scheduled_days,
+      elapsedDays: outcome.log.elapsed_days,
+      recallTimeSeconds: Math.round(state.blindTimer.seconds * 10) / 10,
+      consultedSolution,
+      stability: outcome.card.stability,
+      difficulty: outcome.card.difficulty
+    });
+
+    await updateMistakePartial(state.selectedMistake.id, {
+      fsrsStability: outcome.card.stability,
+      fsrsDifficulty: outcome.card.difficulty,
+      fsrsReps: outcome.card.reps,
+      nextReview: outcome.card.due.toISOString()
+    });
+
+    await saveLocalAndOutbox('sessions', {
+      type: 'problem',
+      date: todayLocal(),
+      timestamp: Date.now(),
+      mode: 'B',
+      phase: document.getElementById('selPhase').value,
+      subject,
+      subtopicId: subtopic,
+      subtopicName,
+      book,
+      chapter,
+      section,
+      timeSeconds: Math.round(state.blindTimer.seconds * 10) / 10,
+      result: rating >= 3 ? 'correct' : 'incorrect',
+      sessionId: state.session.tempId
+    });
+
+    // Reset UI
+    document.getElementById('cardResult').style.display = 'none';
+    document.getElementById('timerDisplay').style.display = 'block';
+    document.getElementById('conjecture-inline').classList.remove('hidden');
+    state.blindTimer.seconds = 0;
+    updateBlindDisplay();
+    state.blindTimer.pendingResult = false;
+    document.querySelectorAll('#toggleRating .toggle-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('chkConsultedSolution').checked = false;
+    state.selectedMistake = null;
+
+    const { populateRecallGroups } = await import('./selectors.js');
+    await populateRecallGroups(subject);
+    await showPendingMistakes();
+
+    const { refreshMetrics } = await import('./metrics.js');
+    const { refreshAll } = await import('./app.js');
+    refreshMetrics();
+    refreshAll();
+    refreshSubtopicHistory();
+
+    document.getElementById('session-conjectures-wrap').style.display = 'block';
+    document.getElementById('left-panel').classList.remove('hidden');
+    refreshSessionConjectures();
+
+    if (state.session.pendingSessionEnd) {
+      state.session.pendingSessionEnd = false;
+      // Dynamic import to break the circular dependency with pomodoro.js.
+      const { transition } = await import('./pomodoro.js');
+      const breakMinutes = parseInt(document.getElementById('pomoBreak').value) || 0;
+      if (breakMinutes > 0) {
+        await transition(PomodoroState.BREAK_RUNNING);
+      } else {
+        await transition(PomodoroState.SESSION_ENDING);
+      }
     }
-  }
-});
+  });
+}
+
+const btnDiscardReviewEl = document.getElementById('btnDiscardReview');
+if (btnDiscardReviewEl) {
+  btnDiscardReviewEl.addEventListener('click', async () => {
+    document.getElementById('cardResult').style.display = 'none';
+    document.getElementById('timerDisplay').style.display = 'block';
+    document.getElementById('conjecture-inline').classList.remove('hidden');
+    state.blindTimer.seconds = 0;
+    updateBlindDisplay();
+    state.blindTimer.pendingResult = false;
+    document.querySelectorAll('#toggleRating .toggle-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('chkConsultedSolution').checked = false;
+    document.getElementById('left-panel').classList.remove('hidden');
+    refreshSubtopicHistory();
+
+    if (state.session.pendingSessionEnd) {
+      state.session.pendingSessionEnd = false;
+      // Dynamic import to break the circular dependency with pomodoro.js.
+      const { transition } = await import('./pomodoro.js');
+      const breakMinutes = parseInt(document.getElementById('pomoBreak').value) || 0;
+      if (breakMinutes > 0) {
+        await transition(PomodoroState.BREAK_RUNNING);
+      } else {
+        await transition(PomodoroState.SESSION_ENDING);
+      }
+    }
+  });
+}

@@ -1,5 +1,5 @@
 import { db, state } from './config.js';
-import { formatTime, formatHMS, todayLocal, formatDate } from './utils.js';
+import { formatTime, formatHMS, todayLocal, formatDate, escapeHtml } from './utils.js';
 import { renderHeatmap, renderProblemsChart, renderFSRSChart } from './charts.js';
 
 // How many hours fill the "level" progress bar to 100%.
@@ -166,14 +166,4 @@ async function renderChartFilters(sessions) {
       >${escapeHtml(s)}</button>
     `)
     .join('');
-}
-
-// ===================== HTML ESCAPING =====================
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }

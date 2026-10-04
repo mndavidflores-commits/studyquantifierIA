@@ -8,7 +8,28 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Serve static assets from project root
+// ===================== SECURITY: BLOCK SENSITIVE FILES =====================
+// Anything matching these patterns returns 404 before static middleware runs.
+const BLOCKED_PATTERNS = [
+  /^\/server\.js$/,
+  /^\/package(-lock)?\.json$/,
+  /^\/\.env(\.|$)/,           // .env, .env.local, .env.example, etc.
+  /^\/\.nojekyll$/,
+  /^\/metadata\.json$/,
+  /^\/README\.md$/i,
+  /^\/node_modules(\/|$)/,
+  /^\/\.git(\/|$)/,
+  /^\/\.github(\/|$)/
+];
+
+app.use((req, res, next) => {
+  if (BLOCKED_PATTERNS.some(rx => rx.test(req.path))) {
+    return res.status(404).send('Not found');
+  }
+  next();
+});
+
+// ===================== STATIC ASSETS =====================
 app.use(express.static(__dirname, {
   setHeaders: (res, filePath) => {
     if (filePath.endsWith('.webmanifest')) {
@@ -17,7 +38,7 @@ app.use(express.static(__dirname, {
   }
 }));
 
-// Fallback to index.html for SPA routes
+// ===================== SPA FALLBACK =====================
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });

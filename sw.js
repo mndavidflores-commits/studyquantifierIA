@@ -1,7 +1,7 @@
 // ===================== CONFIG =====================
 // Bump this version string whenever you push updates — this forces all
 // clients to fetch the new assets and drop the old cache.
-const CACHE_VERSION = 'studyquantifier-v3';
+const CACHE_VERSION = 'studyquantifier-v4';
 const CACHE_NAME = CACHE_VERSION;
 
 // Local assets — cache-first, always offline-available.
@@ -54,13 +54,18 @@ const NEVER_CACHE_HOST = 'wrtmlucrxzewynnnikzh.supabase.co';
 // ===================== INSTALL =====================
 self.addEventListener('install', event => {
   self.skipWaiting();
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(STATIC_ASSETS).catch(err => {
-        console.warn('[SW] Some static assets failed to cache:', err);
-      });
-    })
-  );
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    // Cache each asset independently so one missing file (e.g. a maskable
+    // icon that hasn't been generated yet) doesn't blow up the whole install.
+    await Promise.all(
+      STATIC_ASSETS.map(url =>
+        cache.add(url).catch(err => {
+          console.warn('[SW] Failed to cache asset:', url, err);
+        })
+      )
+    );
+  })());
 });
 
 // ===================== ACTIVATE =====================

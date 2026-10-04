@@ -42,17 +42,19 @@ export const state = {
   session: {
     state: PomodoroState.IDLE,
     tempId: null,
+    savedSessionId: null,          // id of the session after autoSaveSession()
     mode: null,
     remainingSeconds: 90 * 60,
-    elapsedTotal: 0,           // seconds in the CURRENT phase (focus or break)
-    totalFocusSeconds: 0,      // accumulated focus seconds across all focus phases in this session
+    elapsedTotal: 0,               // seconds in the CURRENT phase (focus or break)
+    totalFocusSeconds: 0,          // accumulated focus seconds across all focus phases in this session
+    finalFocusSeconds: 0,          // frozen at SESSION_ENDING, used for the summary
     distractions: 0,
     readingSeconds: 0,
     readingRunning: false,
     readingInterval: null,
     pomoInterval: null,
     pendingSessionEnd: false,
-    pomodoroMode: 'countdown',   // 'countdown' | 'timer'
+    pomodoroMode: 'countdown',     // 'countdown' | 'timer'
     pomoStartTime: null
   },
 
@@ -60,7 +62,9 @@ export const state = {
     running: false,
     seconds: 0,
     interval: null,
-    startTime: null,
+    startTime: null,               // Date.now() when the current run began
+    wasRunning: false,             // set when paused mid-run, used to resume
+    paused: false,                 // true while the timer is frozen but not discarded
     pendingResult: false,
     previousProblemNumber: 1
   },

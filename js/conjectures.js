@@ -1,4 +1,5 @@
 import { db } from './config.js';
+import { escapeHtml } from './utils.js';
 
 // ===================== FULL CONJECTURES VIEW =====================
 export async function refreshConjecturesFull() {
@@ -38,15 +39,4 @@ export async function refreshConjecturesFull() {
 
   html += '</table>';
   wrap.innerHTML = html;
-}
-
-// ===================== HTML ESCAPING =====================
-function escapeHtml(str) {
-  if (str == null) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }

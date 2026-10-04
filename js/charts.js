@@ -6,6 +6,22 @@ let problemsChart = null;
 let fsrsChart = null;
 let sleepChart = null;
 
+// ===================== RESIZE HOOK (used by panels.js) =====================
+/**
+ * Resizes all charts after the current frame has been painted.
+ * Called when a panel becomes visible — Chart.js reads the container size
+ * at construction time, so if the panel was hidden (display:none) when the
+ * chart was first created, its canvas ends up at 0×0. Resizing after the
+ * frame fixes that.
+ */
+export function resizeChartsSoon() {
+  requestAnimationFrame(() => {
+    if (problemsChart) problemsChart.resize();
+    if (fsrsChart) fsrsChart.resize();
+    if (sleepChart) sleepChart.resize();
+  });
+}
+
 // ===================== PROBLEMS SCATTER CHART =====================
 export async function renderProblemsChart() {
   const ctx = document.getElementById('chartProblems')?.getContext('2d');
@@ -251,15 +267,35 @@ export async function renderFSRSChart() {
 }
 
 // ===================== ACTIVITY HEATMAP =====================
+/**
+ * Renders a 12-month activity heatmap.
+ *
+ * The container is a CSS grid with `grid-auto-flow: column` and
+ * `grid-template-rows: repeat(7, 12px)`, so every column = one week and
+ * every row = the same weekday. To keep that alignment:
+ *   - `start` is the Sunday on or before the 1st of the month 11 months ago.
+ *   - `end` is the Saturday on or after today.
+ * Days after today are marked with `data-future="1"` and rendered empty.
+ */
 export async function renderHeatmap(sessions) {
   const container = document.getElementById('heatmapContainer');
   if (!container) return;
 
   const today = new Date();
-  const start = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Start: 1st of the month, 11 months ago, aligned to the previous Sunday.
+  const start = new Date(today);
   start.setMonth(today.getMonth() - 11);
   start.setDate(1);
+  start.setHours(0, 0, 0, 0);
+  start.setDate(start.getDate() - start.getDay());
 
+  // End: Saturday of the current week (so the last column is complete).
+  const end = new Date(today);
+  end.setDate(end.getDate() + (6 - end.getDay()));
+
+  // Aggregate hours by day from pomodoro sessions.
   const hoursByDay = new Map();
   sessions.filter(s => s.type === 'pomodoro').forEach(s => {
     const date = s.date || formatDate(s.timestamp);
@@ -270,17 +306,24 @@ export async function renderHeatmap(sessions) {
   const fragment = document.createDocumentFragment();
   const cursor = new Date(start);
 
-  while (cursor <= today) {
+  while (cursor <= end) {
     const dateStr = formatDate(cursor);
     const hours = hoursByDay.get(dateStr) || 0;
     const level = hours === 0 ? 0 : (hours <= 1 ? 1 : (hours <= 2 ? 2 : (hours <= 4 ? 3 : 4)));
 
     const cell = document.createElement('div');
     cell.className = 'heatmap-day';
-    cell.dataset.level = level;
-    cell.title = `${dateStr}: ${hours.toFixed(1)}h`;
-    fragment.appendChild(cell);
 
+    if (cursor > today) {
+      // Future days: keep the cell in the grid but mark it invisible.
+      cell.dataset.future = '1';
+      cell.title = `${dateStr} (future)`;
+    } else {
+      cell.dataset.level = level;
+      cell.title = `${dateStr}: ${hours.toFixed(1)}h`;
+    }
+
+    fragment.appendChild(cell);
     cursor.setDate(cursor.getDate() + 1);
   }
 

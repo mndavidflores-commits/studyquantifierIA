@@ -1,7 +1,12 @@
 import { db, state } from './config.js';
-import { todayLocal, formatDate, formatHMS } from './utils.js';
+import { todayLocal, formatDate, formatHMS, escapeHtml } from './utils.js';
 
 let comparisonChart = null;
+
+// ===================== RESIZE HOOK (used by panels.js) =====================
+export function resizeComparisonChart() {
+  if (comparisonChart) comparisonChart.resize();
+}
 
 // ===================== ISO WEEK HELPER =====================
 /**
@@ -330,14 +335,4 @@ export async function refreshComparison() {
   await renderToday(dataset);
   await renderSelectedDay(dataset);
   await renderWeek(dataset);
-}
-
-// ===================== HTML ESCAPING =====================
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }

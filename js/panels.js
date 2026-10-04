@@ -4,7 +4,8 @@ import { refreshSleepHistory, refreshSleepChart, refreshNotes } from './sleepNot
 import { refreshChecklist, refreshGoals } from './checklistGoals.js';
 import { refreshConjecturesFull } from './conjectures.js';
 import { refreshSessionConjectures } from './reviews.js';
-import { refreshComparison } from './comparison.js';
+import { refreshComparison, resizeComparisonChart } from './comparison.js';
+import { resizeChartsSoon } from './charts.js';
 
 // ===================== REFRESH ALL PANELS =====================
 export function refreshAll() {
@@ -20,6 +21,11 @@ export function refreshAll() {
   refreshMetricsPanel();
   refreshNotes();
   refreshComparison();
+
+  // Charts created while the panel was hidden may end up at 0×0 — resize on
+  // the next frame so they pick up the correct container dimensions.
+  resizeChartsSoon();
+  resizeComparisonChart();
 }
 
 // ===================== REFRESH ACTIVE PANEL ONLY =====================
@@ -38,13 +44,18 @@ export function refreshActivePanels() {
     case 'panelMetrics':
       refreshMetrics();
       refreshMetricsPanel();
+      // Panel was likely hidden when the chart was first created — force resize.
+      resizeChartsSoon();
       break;
     case 'panelComparison':
       refreshComparison();
+      resizeComparisonChart();
       break;
     case 'panelSleep':
       refreshSleepHistory();
       refreshSleepChart();
+      // Sleep chart has the same "created while hidden" issue.
+      resizeChartsSoon();
       break;
     case 'panelConjectures':
       refreshConjecturesFull();

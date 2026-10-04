@@ -1,12 +1,11 @@
 import { state, PomodoroState, db, supabase } from './config.js';
-import { showToast, todayLocal } from './utils.js';
+import { showToast } from './utils.js';
 import { transition } from './pomodoro.js';
 import {
-  updatePomodoroDisplay, updatePomodoroStatusText, updatePomodoroButtons,
-  setConfigEnabled, stopReadingInterval, stopBlindTimer,
-  updatePomodoroModeButton
+  updatePomodoroDisplay, updatePomodoroButtons,
+  stopReadingInterval, updatePomodoroModeButton
 } from './ui.js';
-import { saveLocalAndOutbox, fixSessionId, syncAll, pullChanges } from './sync.js';
+import { saveLocalAndOutbox, syncAll, pullChanges } from './sync.js';
 import { refreshActivePanels } from './panels.js';
 import {
   populateSubjects, populateSubtopics, populateBooks, updateChapters,
@@ -14,10 +13,8 @@ import {
   populateRecallGroups, applyRecallGroup
 } from './selectors.js';
 import { refreshSubtopicHistory, showPendingMistakes, updateUIForMode } from './reviews.js';
-import { refreshSleepHistory, refreshSleepChart, calculateHours, refreshNotes } from './sleepNotes.js';
+import { refreshSleepHistory, refreshSleepChart, calculateHours } from './sleepNotes.js';
 import { refreshGoals, refreshChecklist } from './checklistGoals.js';
-import { refreshConjecturesFull } from './conjectures.js';
-import { refreshMetrics, refreshMetricsPanel } from './metrics.js';
 import { refreshComparison } from './comparison.js';
 
 import { updateAuthUI } from './auth.js';

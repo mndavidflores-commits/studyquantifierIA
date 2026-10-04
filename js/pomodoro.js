@@ -1,4 +1,3 @@
-import { stopBlindTimerAndShowResult } from './timer.js';
 import { db, state, PomodoroState } from './config.js';
 import { formatTime, todayLocal, showToast } from './utils.js';
 import { saveLocalAndOutbox, fixSessionId } from './sync.js';
@@ -10,10 +9,15 @@ import {
   stopPomodoroInterval,
   stopReadingInterval,
   stopBlindTimer,
+  stopBlindTimerAndShowResult,
   updatePomodoroModeButton
 } from './ui.js';
 import { updateUIForMode, refreshSubtopicHistory } from './reviews.js';
 import { verifyAddSubject, verifyAddSubtopic, verifyAddSection } from './selectors.js';
+
+// NOTE: `stopBlindTimerAndShowResult` used to live in `timer.js`, which created
+// a circular dependency (timer → reviews → pomodoro → timer). It now lives in
+// `ui.js` alongside `stopBlindTimer` and `updateBlindDisplay`.
 
 // ===================== TRANSITION (STATE MACHINE) =====================
 export async function transition(newState) {
@@ -257,6 +261,13 @@ async function setupNewSession() {
 
 // ===================== TICK =====================
 function onPomodoroTick() {
+  // Defensive guard: if this tick fires after a pause/stop transition (race
+  // between setInterval and clearInterval), bail out before mutating state.
+  if (state.session.state !== PomodoroState.FOCUS_RUNNING &&
+      state.session.state !== PomodoroState.BREAK_RUNNING) {
+    return;
+  }
+
   const now = Date.now();
   const previousElapsed = state.session.elapsedTotal;
   const elapsedSeconds = Math.floor((now - state.session.pomoStartTime) / 1000);

@@ -1,5 +1,5 @@
 import { state, PomodoroState } from './config.js';
-import { formatTime } from './utils.js';
+import { formatTime, showToast } from './utils.js';
 
 // ===================== CONFIG CONTROLS =====================
 /**
@@ -122,6 +122,84 @@ export function stopReadingInterval() {
 }
 
 // ===================== BLIND TIMER =====================
+// These functions used to live in `timer.js`. They moved here so that
+// `pomodoro.js` can call `stopBlindTimerAndShowResult` without importing
+// from `timer.js` — which used to create a circular dependency between
+// `timer.js` ⇄ `pomodoro.js` ⇄ `reviews.js`.
+
+export function updateBlindDisplay() {
+  const el = document.getElementById('timerDisplay');
+  if (el) el.textContent = formatTime(state.blindTimer.seconds);
+}
+
+/**
+ * Starts the blind (problem) timer. Only valid while a pomodoro phase is
+ * actually running. In Mode B, requires a pending mistake to be selected.
+ */
+export function startBlindTimer() {
+  if (state.blindTimer.running || state.blindTimer.pendingResult) return;
+  if (state.session.state !== PomodoroState.FOCUS_RUNNING && state.session.state !== PomodoroState.BREAK_RUNNING) return;
+  if (state.session.mode === 'B' && !state.selectedMistake) {
+    showToast('Select a pending mistake first.');
+    return;
+  }
+
+  state.blindTimer.running = true;
+  state.blindTimer.pendingResult = false;
+  state.blindTimer.paused = false;
+  state.blindTimer.wasRunning = false;
+
+  const label = document.getElementById('timerLabel');
+  if (label) label.textContent = 'Studying...';
+
+  state.blindTimer.startTime = Date.now() - state.blindTimer.seconds * 1000;
+
+  const activeView = document.getElementById('active-view');
+  if (activeView) activeView.classList.add('timer-running');
+
+  state.blindTimer.interval = setInterval(() => {
+    state.blindTimer.seconds = (Date.now() - state.blindTimer.startTime) / 1000;
+    updateBlindDisplay();
+  }, 100);
+}
+
+/**
+ * Freezes the blind timer and reveals the result card.
+ * The accumulated seconds are preserved so the caller can save them.
+ */
+export function stopBlindTimerAndShowResult() {
+  if (!state.blindTimer.running) return;
+  state.blindTimer.running = false;
+  clearInterval(state.blindTimer.interval);
+  state.blindTimer.interval = null;
+
+  const label = document.getElementById('timerLabel');
+  if (label) label.textContent = 'Stopped';
+  updateBlindDisplay();
+
+  const shown = document.getElementById('timeShown');
+  if (shown) {
+    shown.textContent = `${formatTime(state.blindTimer.seconds)} (${(state.blindTimer.seconds / 60).toFixed(2)} min)`;
+  }
+
+  if (state.session.mode !== 'B') {
+    state.blindTimer.previousProblemNumber = parseInt(document.getElementById('numProblem').value, 10) || 1;
+  }
+
+  const cardResult = document.getElementById('cardResult');
+  if (cardResult) cardResult.style.display = 'block';
+  const activeView = document.getElementById('active-view');
+  if (activeView) activeView.classList.remove('timer-running');
+  const timerDisplay = document.getElementById('timerDisplay');
+  if (timerDisplay) timerDisplay.style.display = 'none';
+  const conjInline = document.getElementById('conjecture-inline');
+  if (conjInline) conjInline.classList.add('hidden');
+  const leftPanel = document.getElementById('left-panel');
+  if (leftPanel) leftPanel.classList.add('hidden');
+
+  state.blindTimer.pendingResult = true;
+}
+
 /**
  * Stops the blind (problem) timer if it's running, and clears the pending
  * result state. Does NOT reset `state.blindTimer.seconds` — that's handled
@@ -141,9 +219,4 @@ export function stopBlindTimer() {
   updateBlindDisplay();
   const activeView = document.getElementById('active-view');
   if (activeView) activeView.classList.remove('timer-running');
-}
-
-export function updateBlindDisplay() {
-  const el = document.getElementById('timerDisplay');
-  if (el) el.textContent = formatTime(state.blindTimer.seconds);
 }
