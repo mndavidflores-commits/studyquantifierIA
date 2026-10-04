@@ -116,7 +116,7 @@ export async function refreshChecklist() {
           total++;
 
           labelBook.appendChild(inputBook);
-          labelBook.appendChild(document.createTextNode('📖 ' + bookName));
+          labelBook.appendChild(document.createTextNode(bookName));
           fragment.appendChild(labelBook);
 
           // ----- Chapters -----

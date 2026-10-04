@@ -30,6 +30,15 @@ export function updatePomodoroDisplay() {
   if (circle) circle.textContent = time;
   const floatTime = document.getElementById('pomoFloatTime');
   if (floatTime) floatTime.textContent = time;
+
+  const ring = document.getElementById('pomoRingProgress');
+  if (ring) {
+    const totalSec = (parseInt(document.getElementById('pomoWork')?.value, 10) || 90) * 60;
+    const remaining = state.session.remainingSeconds || 0;
+    const fraction = totalSec > 0 ? Math.max(0, Math.min(1, remaining / totalSec)) : 1;
+    const circumference = 289;
+    ring.style.strokeDashoffset = (circumference * (1 - fraction)).toString();
+  }
 }
 
 export function updatePomodoroModeButton() {
@@ -84,7 +93,9 @@ export function updatePomodoroButtons() {
   if (floatPause) {
     floatPause.style.display = sessionActive ? '' : 'none';
     if (sessionActive) {
-      floatPause.textContent = (st === PomodoroState.FOCUS_RUNNING || st === PomodoroState.BREAK_RUNNING) ? '⏯' : '▶';
+      floatPause.innerHTML = (st === PomodoroState.FOCUS_RUNNING || st === PomodoroState.BREAK_RUNNING)
+        ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>'
+        : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
     }
   }
   setDisplay('btnPomoStopFloat', sessionActive, '');
@@ -115,7 +126,9 @@ export function stopReadingInterval() {
 
     // Update float button: icon + accumulated time, without destroying the elements
     const iconFloat = document.getElementById('readingIconFloat');
-    if (iconFloat) iconFloat.textContent = '▶';
+    if (iconFloat) {
+      iconFloat.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
+    }
     const totalFloat = document.getElementById('readingTotalFloat');
     if (totalFloat) totalFloat.textContent = display;
   }

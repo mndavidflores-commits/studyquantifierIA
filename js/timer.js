@@ -80,7 +80,7 @@ document.addEventListener('keydown', e => {
       if (!document.activeElement || tag === 'BODY') {
         e.preventDefault();
         state.session.distractions++;
-        showToast('logged ✅', 1500);
+        showToast('Distraction logged', 1500);
       }
     }
   }

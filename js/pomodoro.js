@@ -372,7 +372,7 @@ async function showSessionSummary() {
 
   document.getElementById('summaryContent').innerHTML = `
     Focus time: ${formatTime(focusSeconds)}<br>
-    Problems: ${total} (✅${correct} ❌${incorrect} ⚪${unresolved})<br>
+    Problems: ${total} (${correct} correct, ${incorrect} incorrect, ${unresolved} unresolved)<br>
     Reading time: ${Math.floor(state.session.readingSeconds / 60)}:${String(state.session.readingSeconds % 60).padStart(2, '0')}<br>
     Avg time / problem: ${total ? formatTime(totalTime / total) : '-'}<br>
     Conjectures: ${conjectures.length}<br>

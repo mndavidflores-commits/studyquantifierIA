@@ -1,25 +1,91 @@
+/* ====================================================
+   Studyquantifier — Design System: Ink / Accent / Paper
+   ==================================================== */
+
 :root {
-  --bg: #323437;
-  --surface: #2c2e31;
-  --surface2: #2c2e31;
-  --border: #646669;
-  --text: #d1d0c5;
-  --text2: #646669;
-  --accent: #ca4754;
-  --accent2: #ca4754;
-  --accent3: #ca4754;
-  --good: #3dd6c8;
-  --bad: #ca4754;
-  --warn: #ca4754;
-  --blue: #5c7cfa;
-  --radius: 5px;
-  --radius-sm: 5px;
-  --shadow: none;
-  --font: 'Lexend Deca', system-ui, sans-serif;
-  --mono: 'Roboto Mono', 'SF Mono', 'Cascadia Code', monospace;
+  /* Dark mode (default) */
+  --ink: #1E1E24;
+  --ink-soft: #26262D;
+  --ink-border: rgba(255, 248, 240, 0.08);
+  --paper: #FFF8F0;
+  --paper-soft: rgba(255, 248, 240, 0.7);
+  --paper-mute: rgba(255, 248, 240, 0.45);
+  --accent: #92140C;
+  --accent-soft: rgba(146, 20, 12, 0.12);
+  --accent-hover: #B01A10;
+
+  /* Spacing (scale of 8) */
+  --space-xs: 8px;
+  --space-sm: 16px;
+  --space-md: 24px;
+  --space-lg: 40px;
+  --space-xl: 64px;
+  --space-2xl: 96px;
+  --space-3xl: 128px;
+
+  /* Radii (max 16px, zero pills except badge-pills) */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  /* Shadows (ink only) */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.20);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.28);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.36);
+
+  /* Typography */
+  --font-display: 'Fraunces', serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Layout */
+  --sidebar-w: 240px;
+  --grid-margin: 24px;
+
+  /* Legacy variable mappings to maintain logic compatibility */
+  --bg: var(--ink);
+  --surface: var(--ink-soft);
+  --surface2: var(--ink-soft);
+  --border: var(--ink-border);
+  --text: var(--paper);
+  --text2: var(--paper-mute);
+  --good: var(--accent);
+  --bad: var(--paper-mute);
+  --warn: var(--accent);
+  --blue: var(--paper-soft);
+  --font: var(--font-body);
+  --mono: var(--font-mono);
 }
 
-* {
+[data-theme="light"] {
+  --ink: #FFF8F0;
+  --ink-soft: #F2EAE0;
+  --ink-border: rgba(30, 30, 36, 0.10);
+  --paper: #1E1E24;
+  --paper-soft: rgba(30, 30, 36, 0.75);
+  --paper-mute: rgba(30, 30, 36, 0.50);
+  --accent: #92140C;
+  --accent-soft: rgba(146, 20, 12, 0.10);
+  --accent-hover: #B01A10;
+
+  --shadow-sm: 0 1px 2px rgba(30, 30, 36, 0.08);
+  --shadow-md: 0 4px 12px rgba(30, 30, 36, 0.12);
+  --shadow-lg: 0 12px 32px rgba(30, 30, 36, 0.16);
+
+  /* Legacy variable mappings */
+  --bg: var(--ink);
+  --surface: var(--ink-soft);
+  --surface2: var(--ink-soft);
+  --border: var(--ink-border);
+  --text: var(--paper);
+  --text2: var(--paper-mute);
+}
+
+/* ====================================================
+   Reset & Baseline
+   ==================================================== */
+*, *::before, *::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -28,164 +94,113 @@
 html, body {
   height: 100%;
   height: 100dvh;
-  overflow-x: hidden;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: #646669 #2c2e31;
-}
-
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font);
-  min-height: 100vh;
-  line-height: 1.5;
-  letter-spacing: 0.01em;
-}
-
-.app-container {
-  height: 100dvh;
-  display: flex;
-  flex-direction: column;
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-
-/* Authentication screen */
-#auth-section.hidden {
-  display: none !important;
-  height: 0 !important;
-  overflow: hidden !important;
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
-/* Panels */
-.panel {
-  display: none;
-}
-
-.panel.active {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-  gap: 14px;
-  align-items: start;
-  animation: fadeIn 0.22s ease;
-  overflow-y: auto;
-  padding: 14px;
-  will-change: transform, opacity;
-}
-
-#panelSession.active {
-  display: flex;
-  flex-direction: column;
-  padding: 0;
-  height: 100%;
-  width: 100%;
   overflow: hidden;
+  background-color: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-/* Main area */
-#main-area {
-  flex: 1;
-  padding: 0;
-  position: relative;
-  height: 100%;
-  width: 100%;
-  overflow-y: auto;
-}
-
-/* Cards */
-.card {
-  background: var(--surface);
-  border: none;
-  border-radius: var(--radius);
-  padding: 20px;
-  box-shadow: none;
-}
-
-.card h3 {
-  color: #fff;
-  margin-bottom: 12px;
-  font-size: 1rem;
-  font-family: var(--font);
-}
-
-.card h3::before {
-  content: "▸ ";
-  color: var(--accent);
-}
-
-/* Grid */
-.grid-2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-/* Forms */
-select,
-input,
-textarea {
-  width: 100%;
-  padding: 9px 12px;
-  background: var(--bg);
-  border: 1px solid var(--border);
+/* ====================================================
+   Accessibility: Skip Link & Focus States
+   ==================================================== */
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 16px;
+  background: var(--accent);
+  color: var(--paper);
+  padding: 10px 18px;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.85rem;
   border-radius: var(--radius-sm);
-  color: var(--text);
-  font-size: 0.88rem;
-  outline: none;
-  font-family: var(--mono);
+  z-index: 9999;
+  text-decoration: none;
+  transition: top 0.2s ease;
 }
 
-select:focus,
-input:focus,
-textarea:focus {
-  border-color: var(--accent);
-  box-shadow: none;
+.skip-link:focus {
+  top: 16px;
+  outline: 2px solid var(--paper);
+  outline-offset: 2px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ====================================================
+   Custom Scrollbars
+   ==================================================== */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--ink);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--ink-border);
+  border-radius: var(--radius-sm);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--paper-mute);
+}
+
+/* Firefox scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink-border) var(--ink);
+}
+
+/* ====================================================
+   Typography Elements
+   ==================================================== */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  color: var(--paper);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+p {
+  color: var(--paper-soft);
+  font-size: 0.95rem;
+  line-height: 1.7;
 }
 
 label {
   display: block;
-  font-size: 0.7rem;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text2);
-  margin-bottom: 4px;
-  font-family: var(--mono);
+  letter-spacing: 0.2em;
+  color: var(--paper-mute);
+  margin-bottom: 6px;
 }
 
-/* Scrollbars */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+.mono {
+  font-family: var(--font-mono);
 }
 
-::-webkit-scrollbar-track {
-  background: #2c2e31;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #646669;
-  border-radius: 10px;
-  transition: background 0.2s;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #ca4754;
-}
-
-/* Prevent horizontal overflow globally */
-#main-area,
-.panel.active,
-.metric-dashboard,
-.chart-wrapper,
-.chart-container,
-.heatmap-container {
-  max-width: 100%;
+/* ====================================================
+   Reduced Motion
+   ==================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

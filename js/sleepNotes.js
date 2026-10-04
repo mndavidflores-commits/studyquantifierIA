@@ -47,14 +47,13 @@ export async function refreshSleepHistory() {
     <tbody>`;
 
   records.forEach(r => {
-    const stars = '★'.repeat(Math.floor(r.quality)) + '☆'.repeat(10 - Math.floor(r.quality));
     html += `<tr>
       <td>${r.date}</td>
       <td>${r.hours}h</td>
-      <td>${stars} ${r.quality}/10</td>
+      <td>${r.quality}/10</td>
       <td>${format12h(r.bedtime)}</td>
       <td>${format12h(r.wakeup)}</td>
-      <td><button class="small danger" data-delete-sleep="${r.id}">X</button></td>
+      <td><button class="small danger" data-delete-sleep="${r.id}">Delete</button></td>
     </tr>`;
   });
   html += '</tbody></table>';
@@ -76,7 +75,7 @@ export async function refreshSleepHistory() {
         createdAt: new Date().toISOString()
       });
 
-      showToast('Sleep record deleted ✅');
+      showToast('Sleep record deleted');
       await syncAll({ silent: true });
       refreshSleepHistory();
       refreshSleepChart();

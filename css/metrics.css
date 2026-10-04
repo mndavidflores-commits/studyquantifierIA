@@ -1,41 +1,48 @@
-/* ========== METRICS PANEL ========== */
-#panelMetrics.active {
-  display: block;
-}
+/* ====================================================
+   Studyquantifier — Metrics Dashboard & Visualizations
+   ==================================================== */
 
 .metric-dashboard {
-  display: grid;
-  gap: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
   width: 100%;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
 }
 
-.metric-top-row {
+/* ====================================================
+   Row 1: 4 Key Cards (Profile + 3 Macro Stats)
+   ==================================================== */
+.metrics-row-1 {
   display: grid;
-  grid-template-columns: 1fr 3fr;
-  gap: 20px;
+  grid-template-columns: repeat(12, 1fr);
+  gap: var(--space-md);
   align-items: stretch;
 }
 
-.metric-profile {
+.metric-profile-card {
+  grid-column: span 3;
   display: flex;
   align-items: center;
-  gap: 15px;
-  padding: 20px;
+  gap: 16px;
+  padding: var(--space-md);
 }
 
 .avatar {
-  width: 50px;
-  height: 50px;
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
   border-radius: 50%;
   background: var(--accent);
-  color: #fff;
+  color: var(--paper);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: bold;
-  font-size: 1.2rem;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: -0.02em;
   flex-shrink: 0;
 }
 
@@ -45,224 +52,250 @@
 }
 
 .user-name {
-  font-size: 1.2rem;
+  font-family: var(--font-body);
+  font-size: 1rem;
   font-weight: 600;
-  color: #fff;
-  margin-bottom: 2px;
-  font-family: var(--font);
-}
-
-.user-register {
-  font-size: 0.8rem;
-  color: var(--text2);
-  font-family: var(--mono);
-}
-
-.user-streak {
-  font-size: 0.9rem;
-  color: var(--accent);
-  margin: 4px 0;
-  font-family: var(--mono);
-}
-
-.metric-profile .progress-bar {
-  width: 100%;
-  height: 8px;
-  background: var(--bg);
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.metric-profile .progress-fill {
-  height: 100%;
-  background: var(--accent);
-  border-radius: 10px;
-  transition: width 0.4s;
-}
-
-.metric-stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-}
-
-.stat-item {
-  background: var(--surface);
-  border-radius: var(--radius-sm);
-  padding: 20px;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.stat-value {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: #fff;
-  font-family: var(--mono);
-}
-
-.stat-label {
-  font-size: 0.75rem;
-  color: var(--text2);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-top: 5px;
-  font-family: var(--mono);
-}
-
-.metric-middle-row {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
-  align-items: stretch;
-}
-
-.metric-card-horizontal {
-  background: var(--surface);
-  border-radius: var(--radius-sm);
-  padding: 20px;
-  display: grid;
-  gap: 10px;
-}
-
-.metric-card-horizontal:first-child {
-  grid-template-columns: repeat(4, 1fr);
-}
-
-.metric-card-horizontal:last-child {
-  grid-template-columns: repeat(2, 1fr);
-}
-
-.metric-horizontal-item {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-}
-
-.metric-horizontal-label {
-  font-size: 0.7rem;
-  color: var(--text2);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 4px;
-  font-family: var(--mono);
-}
-
-.metric-horizontal-value {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: #fff;
-  font-family: var(--mono);
+  color: var(--paper);
   line-height: 1.2;
 }
 
-/* ========== HEATMAP ========== */
+.user-register {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  color: var(--paper-mute);
+  margin-top: 2px;
+}
+
+.user-streak {
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--paper-soft);
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.user-streak svg {
+  width: 15px;
+  height: 15px;
+  stroke: var(--accent);
+}
+
+.user-streak .streak-val {
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+
+/* Macro Stat Cards */
+.macro-stat-card {
+  grid-column: span 3;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--space-md);
+}
+
+.stat-value {
+  font-family: var(--font-mono);
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--paper);
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+}
+
+.stat-label {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--paper-mute);
+  margin-top: 8px;
+}
+
+/* ====================================================
+   Row 2: 6 Mini-Stats in a Single Row
+   ==================================================== */
+.metrics-row-2 {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: var(--space-md);
+}
+
+.mini-stat-card {
+  padding: var(--space-sm) var(--space-md);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.mini-stat-label {
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--paper-mute);
+  margin-bottom: 6px;
+}
+
+.mini-stat-value {
+  font-family: var(--font-mono);
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--paper);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.mini-stat-value.accent {
+  color: var(--accent);
+}
+
+/* ====================================================
+   Activity Heatmap (Last 12 Months)
+   ==================================================== */
 .heatmap-card {
-  padding: 20px;
-  background: var(--surface);
+  padding: var(--space-md);
+}
+
+.heatmap-card h3 {
+  margin-bottom: var(--space-sm);
+}
+
+.heatmap-months {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--paper-mute);
+  letter-spacing: 0.05em;
+  padding: 0 4px;
 }
 
 .heatmap-container {
   display: grid;
   grid-auto-flow: column;
-  grid-template-rows: repeat(7, 12px);
+  grid-template-rows: repeat(7, 10px);
   gap: 3px;
-  margin-top: 10px;
   overflow-x: auto;
-  padding-bottom: 5px;
+  padding-bottom: 6px;
 }
 
 .heatmap-day {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   border-radius: 2px;
-  background: var(--bg);
-  transition: transform 0.15s;
+  background-color: var(--ink-soft);
+  border: 1px solid var(--ink-border);
+  transition: transform 0.15s ease, border-color 0.15s ease;
   cursor: pointer;
 }
 
 .heatmap-day:hover {
   transform: scale(1.4);
+  border-color: var(--paper);
+  z-index: 5;
 }
 
-.heatmap-day[data-level="0"] { background: var(--bg); }
-.heatmap-day[data-level="1"] { background: #5c343b; }
-.heatmap-day[data-level="2"] { background: #8b3a45; }
-.heatmap-day[data-level="3"] { background: #ca4754; }
-.heatmap-day[data-level="4"] { background: #e06c78; }
+.heatmap-day[data-level="0"] {
+  background-color: var(--ink-soft);
+}
 
-/* ========== CHARTS ========== */
+.heatmap-day[data-level="1"] {
+  background-color: rgba(146, 20, 12, 0.20);
+  border-color: rgba(146, 20, 12, 0.30);
+}
+
+.heatmap-day[data-level="2"] {
+  background-color: rgba(146, 20, 12, 0.45);
+  border-color: rgba(146, 20, 12, 0.55);
+}
+
+.heatmap-day[data-level="3"] {
+  background-color: rgba(146, 20, 12, 0.75);
+  border-color: rgba(146, 20, 12, 0.85);
+}
+
+.heatmap-day[data-level="4"] {
+  background-color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* ====================================================
+   Charts (Scatter, FSRS, Comparison, Sleep)
+   ==================================================== */
 .chart-card {
-  background: var(--bg);
-  border: none;
-  padding: 20px;
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: var(--space-sm);
 }
 
 .chart-filters {
   display: flex;
-  justify-content: center;
   gap: 8px;
-  margin-bottom: 12px;
   flex-wrap: wrap;
 }
 
 .chart-filter-btn {
-  padding: 6px 16px;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  padding: 6px 14px;
+  background: transparent;
+  border: 1px solid var(--ink-border);
+  color: var(--paper-soft);
   border-radius: var(--radius-sm);
-  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 500;
   cursor: pointer;
-  font-size: 0.8rem;
-  font-family: var(--font);
-  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .chart-filter-btn:hover {
-  background: rgba(202, 71, 84, 0.2);
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--paper-mute);
 }
 
 .chart-filter-btn.active {
-  background: var(--accent);
-  color: var(--bg);
+  background: var(--accent-soft);
   border-color: var(--accent);
-}
-
-.chart-toggle-btn {
-  padding: 4px 12px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  color: var(--text);
-  cursor: pointer;
-  font-size: 0.75rem;
-  font-family: var(--font);
-  transition: background 0.2s, color 0.2s, border-color 0.2s;
-}
-
-.chart-toggle-btn:hover {
-  background: rgba(202, 71, 84, 0.2);
-}
-
-.chart-toggle-btn.active {
-  background: var(--accent);
-  color: var(--bg);
-  border-color: var(--accent);
+  color: var(--paper);
+  font-weight: 600;
 }
 
 .chart-wrapper {
   position: relative;
   width: 100%;
+  height: 320px;
+  min-height: 320px;
+  margin: var(--space-xs) 0;
+}
+
+.chart-container {
+  position: relative;
+  width: 100%;
   height: 300px;
-  margin-bottom: 8px;
+  min-height: 300px;
 }
 
 .chart-toggles {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 8px;
+  margin-top: 8px;
 }
