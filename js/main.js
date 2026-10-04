@@ -4,6 +4,20 @@ import { updateAuthUI } from './app.js';
 // Side-effect import: registers keyboard/touch/result-button listeners.
 import './timer.js';
 
+// Verificación de acceso: solo el dueño puede usar esta app
+async function checkOwnerAccess(session) {
+  const user = session?.user;
+  if (user && user.email !== 'mndavidflores@gmail.com') {
+    await supabase.auth.signOut();
+    alert('Acceso denegado. Esta aplicación es privada.');
+    window.location.reload();
+    return false;
+  }
+  return true;
+}
+
+// ===================== INITIAL AUTH CHECK =====================
+// If the user already has a Supabase session in localStorage, restore it now.
 let session = null;
 try {
   const { data } = await supabase.auth.getSession();
@@ -12,14 +26,16 @@ try {
   console.warn('Could not restore auth session:', e);
 }
 
-if (!session && localStorage.getItem('studyquantifier_guest') === 'true') {
-  session = { user: { id: 'local-guest-user', email: 'guest@studyquantifier.local' } };
+if (await checkOwnerAccess(session)) {
+  updateAuthUI(session);
 }
 
-updateAuthUI(session);
-
 // React to future auth changes (login, logout, token refresh).
-supabase.auth.onAuthStateChange((_event, session) => updateAuthUI(session));
+supabase.auth.onAuthStateChange(async (_event, session) => {
+  if (await checkOwnerAccess(session)) {
+    updateAuthUI(session);
+  }
+});
 
 // ===================== SERVICE WORKER =====================
 if ('serviceWorker' in navigator) {
