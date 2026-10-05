@@ -145,9 +145,26 @@ export async function refreshChecklist() {
     container.innerHTML = '';
     container.appendChild(fragment);
 
+    // === GOAL GRADIENT (video 3) ===
+    // Instead of always saying "0% completed" (deflating), reframe
+    // the percent line based on where the user actually is.
     const pct = total ? Math.round(completedCount / total * 100) : 0;
+    const percentEl = document.getElementById('checklistPercent');
     document.getElementById('progressChecklist').style.width = pct + '%';
-    document.getElementById('checklistPercent').textContent = `${pct}% completed (${completedCount}/${total})`;
+
+    if (percentEl) {
+      if (completedCount === 0) {
+        // Never started: don't punish with 0%. Invite.
+        percentEl.textContent = `Ready to begin — your first topic unlocks progress`;
+      } else if (completedCount === total) {
+        // Finished everything.
+        percentEl.textContent = `All done — ${completedCount} of ${total} topics ✓`;
+      } else {
+        // In progress: goal-gradient framing.
+        const remaining = total - completedCount;
+        percentEl.textContent = `${pct}% completed · ${completedCount}/${total} · ${remaining} to go`;
+      }
+    }
   } catch (error) {
     console.error('Error in refreshChecklist:', error);
     container.innerHTML = '<p style="color:var(--paper-mute);">Failed to load the checklist.</p>';
@@ -213,12 +230,23 @@ if (checklistContainer) {
 }
 
 // ===================== GOALS =====================
+/**
+ * Goals panel with two psychological reframes from video 3:
+ *
+ *   1. Contrast effect — never show "today" in isolation. Always
+ *      contextualize against a 7-day average so the user can feel
+ *      whether they're ahead or behind.
+ *
+ *   2. Goal gradient — when the user has never studied, don't start
+ *      them at "0%". Reframe the empty state as an invitation and
+ *      give them the sense that step 1 is already underway.
+ */
 export async function refreshGoals() {
   const now = new Date();
   const dayOfWeek = now.getDay();
   const isActiveDay = state.activeGoalDays.includes(dayOfWeek);
 
-  // --- Daily ---
+  // ---- Daily hours (today) ----
   const todaySessions = await db.sessions
     .where('date').equals(todayLocal())
     .and(s => s.type === 'pomodoro')
@@ -228,16 +256,69 @@ export async function refreshGoals() {
   const dailyGoalEl = document.getElementById('dailyGoal');
   const dailyGoal = parseFloat(dailyGoalEl?.value) || 3;
 
-  if (isActiveDay) {
-    document.getElementById('dailyProgress').textContent = `${hoursToday.toFixed(1)}h / ${dailyGoal}h`;
-    document.getElementById('dailyProgressBar').style.width =
-      Math.min(100, (hoursToday / dailyGoal) * 100) + '%';
-  } else {
-    document.getElementById('dailyProgress').textContent = `${hoursToday.toFixed(1)}h (inactive day)`;
-    document.getElementById('dailyProgressBar').style.width = '0%';
+  // ---- Contrast baseline: 7-day average (excluding today) ----
+  const sevenDaysAgo = new Date(now);
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const sevenDaysAgoStr = formatDate(sevenDaysAgo);
+
+  const last7Sessions = await db.sessions
+    .where('date').between(sevenDaysAgoStr, todayLocal(), true, false)
+    .and(s => s.type === 'pomodoro')
+    .toArray();
+
+  const hoursByDay = {};
+  last7Sessions.forEach(s => {
+    const d = s.date;
+    hoursByDay[d] = (hoursByDay[d] || 0) + (s.pomodoroTime || 0) / 3600;
+  });
+  const daysWithData = Object.keys(hoursByDay).length;
+  const weeklyAvg = daysWithData > 0
+    ? Object.values(hoursByDay).reduce((a, b) => a + b, 0) / daysWithData
+    : 0;
+
+  // ---- Daily progress with contextual message ----
+  const dailyProgressEl = document.getElementById('dailyProgress');
+  const dailyProgressBarEl = document.getElementById('dailyProgressBar');
+
+  if (!dailyProgressEl || !dailyProgressBarEl) {
+    // Fallback: silently exit if the elements aren't in the DOM yet.
+    return;
   }
 
-  // --- Weekly ---
+  if (!isActiveDay) {
+    // Rest day
+    if (hoursToday > 0) {
+      dailyProgressEl.textContent = `${hoursToday.toFixed(1)}h (rest day — bonus)`;
+    } else {
+      dailyProgressEl.textContent = `Rest day — no goal today`;
+    }
+    dailyProgressBarEl.style.width = '0%';
+  } else if (hoursToday === 0 && weeklyAvg === 0) {
+    // First time ever — goal gradient: don't start at 0%
+    dailyProgressEl.textContent = `Ready to begin — your first session sets the baseline`;
+    dailyProgressBarEl.style.width = '0%';
+  } else if (hoursToday >= dailyGoal) {
+    // Goal reached — celebrate with the overflow
+    const overflow = (hoursToday - dailyGoal).toFixed(1);
+    dailyProgressEl.textContent = `${hoursToday.toFixed(1)}h / ${dailyGoal}h ✓ +${overflow}h over`;
+    dailyProgressBarEl.style.width = '100%';
+  } else {
+    // In progress — contrast against the 7-day average
+    const pct = Math.min(100, (hoursToday / dailyGoal) * 100);
+    const diff = hoursToday - weeklyAvg;
+    let contrast = '';
+    if (weeklyAvg > 0) {
+      if (diff >= 0) {
+        contrast = ` — above your ${weeklyAvg.toFixed(1)}h avg`;
+      } else {
+        contrast = ` — ${Math.abs(diff).toFixed(1)}h below your ${weeklyAvg.toFixed(1)}h avg`;
+      }
+    }
+    dailyProgressEl.textContent = `${hoursToday.toFixed(1)}h / ${dailyGoal}h${contrast}`;
+    dailyProgressBarEl.style.width = pct + '%';
+  }
+
+  // ---- Weekly hours ----
   const startOfWeek = new Date(now);
   startOfWeek.setDate(now.getDate() - ((now.getDay() + 6) % 7)); // Monday
   const startOfWeekStr = formatDate(startOfWeek);
@@ -252,8 +333,26 @@ export async function refreshGoals() {
   const weeklyGoalEl = document.getElementById('weeklyGoal');
   const weeklyGoal = parseFloat(weeklyGoalEl?.value) || 15;
 
-  document.getElementById('weeklyProgress').textContent =
-    `${hoursThisWeek.toFixed(1)}h / ${weeklyGoal}h`;
-  document.getElementById('weeklyProgressBar').style.width =
-    Math.min(100, (hoursThisWeek / weeklyGoal) * 100) + '%';
+  // Days remaining in the week (including today) — used to compute
+  // how many hours per day the user needs to hit the weekly goal.
+  const daysIntoWeek = ((now.getDay() + 6) % 7) + 1; // Mon=1 ... Sun=7
+  const daysRemaining = Math.max(1, 7 - daysIntoWeek + 1);
+  const perDayNeeded = Math.max(0, (weeklyGoal - hoursThisWeek) / daysRemaining);
+
+  const weeklyProgressEl = document.getElementById('weeklyProgress');
+  const weeklyProgressBarEl = document.getElementById('weeklyProgressBar');
+
+  if (!weeklyProgressEl || !weeklyProgressBarEl) return;
+
+  if (hoursThisWeek >= weeklyGoal) {
+    weeklyProgressEl.textContent = `${hoursThisWeek.toFixed(1)}h / ${weeklyGoal}h ✓ weekly goal reached`;
+    weeklyProgressBarEl.style.width = '100%';
+  } else if (hoursThisWeek === 0) {
+    // Goal gradient for weekly too
+    weeklyProgressEl.textContent = `${weeklyGoal}h target — pace: ${(weeklyGoal / 7).toFixed(1)}h/day`;
+    weeklyProgressBarEl.style.width = '0%';
+  } else {
+    weeklyProgressEl.textContent = `${hoursThisWeek.toFixed(1)}h / ${weeklyGoal}h — ${perDayNeeded.toFixed(1)}h/day to hit target`;
+    weeklyProgressBarEl.style.width = Math.min(100, (hoursThisWeek / weeklyGoal) * 100) + '%';
+  }
 }

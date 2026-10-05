@@ -44,7 +44,6 @@ export function initEvents() {
   if (btnClose) btnClose.addEventListener('click', closeDrawer);
   if (backdrop) backdrop.addEventListener('click', closeDrawer);
 
-  // Close drawer on Escape
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeDrawer();
   });
@@ -65,7 +64,6 @@ export function initEvents() {
 
       refreshActivePanels();
 
-      // On mobile, close the drawer after picking a section.
       if (window.matchMedia('(max-width: 1200px)').matches) {
         closeDrawer();
       }
@@ -179,10 +177,64 @@ export function initEvents() {
     await handleReset();
   });
 
+  // ===================== RESET WITH LOSS AVERSION (video 3) =====================
+  /**
+   * Loss aversion: instead of a generic "session will be lost", we compute
+   * exactly what the user stands to lose — problems registered, minutes
+   * of focus, conjectures saved — and show it in the confirm dialog.
+   *
+   * If there's literally nothing to lose, skip the confirm entirely and
+   * reset silently. Removing friction when there's no risk is itself a
+   * UX win (video 3: "don't make users think when you already know the
+   * answer").
+   */
   async function handleReset() {
-    if (state.session.state !== PomodoroState.IDLE
-      && state.session.elapsedTotal > 0
-      && !confirm('Reset? The current session will be lost.')) return;
+    const isIdle = state.session.state === PomodoroState.IDLE;
+    if (isIdle) {
+      // Nothing running. Silent reset.
+      transition(PomodoroState.IDLE);
+      refreshActivePanels();
+      return;
+    }
+
+    // Gather what would be lost if the user resets right now.
+    let problemCount = 0;
+    let conjectureCount = 0;
+    const focusSeconds = state.session.totalFocusSeconds || state.session.elapsedTotal || 0;
+    const focusMinutes = Math.round(focusSeconds / 60);
+
+    if (state.session.tempId) {
+      problemCount = await db.sessions
+        .where('type').equals('problem')
+        .and(s => s.sessionId === state.session.tempId)
+        .count();
+      conjectureCount = await db.conjectures
+        .where('sessionId').equals(state.session.tempId)
+        .count();
+    }
+
+    // If nothing to lose, skip the confirm.
+    const hasLoss = problemCount > 0 || conjectureCount > 0 || focusMinutes > 0;
+    if (hasLoss) {
+      const parts = [];
+      if (problemCount > 0) {
+        parts.push(`${problemCount} problem${problemCount === 1 ? '' : 's'}`);
+      }
+      if (focusMinutes > 0) {
+        parts.push(`${focusMinutes} min of focus`);
+      }
+      if (conjectureCount > 0) {
+        parts.push(`${conjectureCount} conjecture${conjectureCount === 1 ? '' : 's'}`);
+      }
+
+      const lostList = parts.length === 1
+        ? parts[0]
+        : parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1];
+
+      const message = `Reset? You'll lose ${lostList}.\n\nThis can't be undone.`;
+
+      if (!confirm(message)) return;
+    }
 
     if (state.session.tempId) {
       await db.sessions.where('sessionId').equals(state.session.tempId).delete();
@@ -598,8 +650,6 @@ export function initEvents() {
   });
 
   // ===================== MOBILE ACTION MIRRORS =====================
-  // The 4 topbar buttons also live in the sidebar on mobile.
-  // Forward their clicks to the canonical buttons.
   const mobileMirrors = [
     ['btnExportMobile', 'btnExport'],
     ['btnImportMobile', 'btnImport'],
@@ -612,7 +662,6 @@ export function initEvents() {
     mobileBtn.addEventListener('click', () => {
       const target = document.getElementById(targetId);
       if (target) target.click();
-      // Only auto-close the drawer for actions that don't open a file dialog
       if (mobileId === 'btnSyncNowMobile' && window.matchMedia('(max-width: 1200px)').matches) {
         closeDrawer();
       }

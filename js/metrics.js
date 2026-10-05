@@ -29,6 +29,43 @@ export async function refreshMetrics() {
   }
 }
 
+// ===================== CONTRAST HELPER (video 3) =====================
+/**
+ * Computes the average hours-per-day over the last 7 days that had any
+ * pomodoro data. Used by the "Hours studied today" mini-stat to give
+ * context to today's number — video 3: "don't show a cost in isolation,
+ * control what the user sees first".
+ *
+ * Returns null if there's not enough history to form a baseline (< 2 days
+ * with data). One data point isn't a baseline, it's a coincidence.
+ */
+async function getSevenDayAverageHours() {
+  const now = new Date();
+  const sevenDaysAgo = new Date(now);
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const sevenDaysAgoStr = formatDate(sevenDaysAgo);
+  const todayStr = todayLocal();
+
+  const sessions = await db.sessions
+    .where('date').between(sevenDaysAgoStr, todayStr, true, false)
+    .and(s => s.type === 'pomodoro')
+    .toArray();
+
+  if (sessions.length === 0) return null;
+
+  const hoursByDay = {};
+  sessions.forEach(s => {
+    const d = s.date;
+    hoursByDay[d] = (hoursByDay[d] || 0) + (s.pomodoroTime || 0) / 3600;
+  });
+
+  const daysWithData = Object.keys(hoursByDay).length;
+  if (daysWithData < 2) return null; // not enough signal
+
+  const total = Object.values(hoursByDay).reduce((a, b) => a + b, 0);
+  return total / daysWithData;
+}
+
 // ===================== FULL METRICS PANEL =====================
 export async function refreshMetricsPanel() {
   const sessions = await db.sessions.toArray();
@@ -60,13 +97,10 @@ export async function refreshMetricsPanel() {
   let streak = 0;
   let cursor = new Date();
   if (studiedDays.has(todayStr)) {
-    // Started today — count backwards
     cursor = new Date();
   } else if (studiedDays.has(yesterdayStr)) {
-    // Not today yet, but yesterday counts
     cursor = yesterday;
   } else {
-    // Gap — streak is 0
     cursor = null;
   }
 
@@ -116,13 +150,37 @@ export async function refreshMetricsPanel() {
   setText('totalReviews', reviews.length);
   setText('totalConjectures', conjectures.length);
 
-  // ---- Hours studied today ----
+  // ---- Hours studied today WITH CONTRAST (video 3) ----
+  // Instead of "0.0 h" in isolation, we compare against the user's own
+  // 7-day average. Same number, but it now carries meaning.
   const today = todayLocal();
   const todaySessions = sessions.filter(s =>
     s.type === 'pomodoro' && (s.date || formatDate(s.timestamp)) === today
   );
   const hoursToday = todaySessions.reduce((acc, s) => acc + (s.pomodoroTime || 0), 0) / 3600;
-  setText('hoursToday', hoursToday.toFixed(1) + ' h');
+
+  const avg7 = await getSevenDayAverageHours();
+  const hoursTodayEl = document.getElementById('hoursToday');
+
+  if (hoursTodayEl) {
+    if (avg7 === null) {
+      // Not enough history — show plain number.
+      hoursTodayEl.textContent = hoursToday.toFixed(1) + ' h';
+    } else {
+      // Contrast framing.
+      const diff = hoursToday - avg7;
+      const absDiff = Math.abs(diff).toFixed(1);
+
+      if (Math.abs(diff) < 0.15) {
+        // Basically at average — treat as neutral.
+        hoursTodayEl.textContent = `${hoursToday.toFixed(1)} h · on avg`;
+      } else if (diff > 0) {
+        hoursTodayEl.textContent = `${hoursToday.toFixed(1)} h · +${absDiff} above avg`;
+      } else {
+        hoursTodayEl.textContent = `${hoursToday.toFixed(1)} h · ${absDiff} below avg`;
+      }
+    }
+  }
 
   // ---- Level progress ----
   const totalHours = totalSeconds / 3600;

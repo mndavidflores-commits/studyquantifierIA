@@ -2,6 +2,34 @@ import { db, state } from './config.js';
 import { refreshSubtopicHistory, showPendingMistakes } from './reviews.js';
 import { todayLocal } from './utils.js';
 
+// ===================== SMART DEFAULTS (video 3) =====================
+/**
+ * Returns the most recent session (ANY type) that has a subject set.
+ *
+ * We deliberately look at ALL session types — not just problems — because
+ * a session can be reading-only or theory-only with zero registered
+ * problems, and it still represents the user's last-used study context.
+ * Problems are just one kind of session; the intent to study "Algebra /
+ * Equations / Stewart / Ch3" is what we want to remember.
+ *
+ * Sessions with no subject (abandoned setup) are skipped.
+ */
+async function getLastUsedSession() {
+  const all = await db.sessions.toArray();
+  if (!all.length) return null;
+
+  const valid = all.filter(s =>
+    s.subject &&
+    s.subject !== '__add__' &&
+    s.subtopicId &&
+    s.subtopicId !== '__add__'
+  );
+  if (!valid.length) return null;
+
+  valid.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+  return valid[0];
+}
+
 // ===================== SUBJECT SELECTOR =====================
 export async function populateSubjects() {
   const sel = document.getElementById('selSubject');
@@ -19,8 +47,14 @@ export async function populateSubjects() {
     sel.appendChild(opt);
   });
 
-  // Select the first real subject by value (not by index — safer if order changes).
-  if (all.length > 0) sel.value = all[0];
+  // Smart default: preselect the subject used in the most recent session.
+  const last = await getLastUsedSession();
+  if (last?.subject && all.includes(last.subject)) {
+    sel.value = last.subject;
+  } else if (all.length > 0) {
+    sel.value = all[0];
+  }
+
   verifyAddSubject();
 }
 
@@ -96,6 +130,13 @@ export async function populateSubtopics(subject) {
     sel.appendChild(optgroup);
   }
 
+  // Smart default: preselect the last subtopic used for this same subject.
+  const last = await getLastUsedSession();
+  if (last?.subtopicId && last.subject === subject) {
+    const exists = [...sel.options].some(o => o.value === String(last.subtopicId));
+    if (exists) sel.value = String(last.subtopicId);
+  }
+
   verifyAddSubtopic();
 }
 
@@ -147,10 +188,18 @@ export async function populateBooks(subtopicId) {
   }
 
   selBook.innerHTML = books.map(b => `<option value="${b.name}">${b.name}</option>`).join('');
-  updateChapters(books[0].name, subtopicId);
+
+  // Smart default: preselect the last book used for this same subtopic.
+  const last = await getLastUsedSession();
+  if (last?.book && String(last.subtopicId) === String(subtopicId)) {
+    const exists = [...selBook.options].some(o => o.value === last.book);
+    if (exists) selBook.value = last.book;
+  }
+
+  updateChapters(selBook.value, subtopicId);
 
   const subject = document.getElementById('selSubject')?.value;
-  await populateSections(subject, books[0].name);
+  await populateSections(subject, selBook.value);
 }
 
 export function updateChapters(selectedBook, subtopicId) {
@@ -169,6 +218,15 @@ export function updateChapters(selectedBook, subtopicId) {
 
   if (book && book.chapters.length) {
     selChapter.innerHTML = book.chapters.map(c => `<option value="${c}">${c}</option>`).join('');
+
+    // Smart default: preselect the last chapter used for this same book.
+    (async () => {
+      const last = await getLastUsedSession();
+      if (last?.chapter && last.book === selectedBook) {
+        const exists = [...selChapter.options].some(o => o.value === String(last.chapter));
+        if (exists) selChapter.value = String(last.chapter);
+      }
+    })();
   } else {
     selChapter.innerHTML = '<option value="">No chapter</option>';
   }
@@ -213,7 +271,16 @@ export async function populateSections(subject, book) {
   optAdd.textContent = '+ Add new section...';
   sel.appendChild(optAdd);
 
-  sel.value = baseSections[0];
+  // Smart default: preselect the last section used for this same book.
+  const last = await getLastUsedSession();
+  if (last?.section && last.book === book) {
+    const exists = [...sel.options].some(o => o.value === last.section);
+    if (exists) sel.value = last.section;
+    else sel.value = baseSections[0];
+  } else {
+    sel.value = baseSections[0];
+  }
+
   if (addRow) addRow.style.display = 'none';
   verifyAddSection();
 
@@ -230,16 +297,10 @@ export function verifyAddSection() {
 }
 
 // ===================== RECALL GROUPS (MODE B) — Anki-style list =====================
-/**
- * Builds a scrollable list of clickable groups instead of a <select> dropdown.
- * Each item is a div.recall-group-item with data-key and data-count.
- * The selected item gets the .active class.
- */
 export async function populateRecallGroups(subject) {
   const list = document.getElementById('recallGroupList');
   if (!list) return;
 
-  // Placeholder while empty / unselected
   list.innerHTML = '<div class="recall-group-item disabled">Select a recall group...</div>';
   if (!subject || subject === '__add__') return;
 
@@ -295,7 +356,6 @@ export async function populateRecallGroups(subject) {
     item.dataset.key = key;
     item.dataset.count = g.count;
 
-    // textContent auto-escapes — safe against any special characters in user data.
     const label = document.createElement('span');
     label.className = 'recall-group-label';
     label.textContent = `${g.book} · ${g.subtopicName} · ${g.section}`;
@@ -309,7 +369,6 @@ export async function populateRecallGroups(subject) {
     list.appendChild(item);
   }
 
-  // Ensure the active item is scrolled into view (if any)
   const active = list.querySelector('.recall-group-item.active');
   if (active) active.scrollIntoView({ block: 'nearest' });
 }
