@@ -1,5 +1,5 @@
 import { db, state } from './config.js';
-import { formatTime, formatDate } from './utils.js';
+import { formatTime, formatDate, escapeHtml } from './utils.js';
 import { editProblem } from './reviews.js';
 
 // ===================== FULL HISTORY WITH PAGINATION =====================
@@ -36,8 +36,9 @@ export async function refreshHistory(reset = true) {
   const visibleDates = sortedDates.slice(dateOffset, dateOffset + DATES_PER_PAGE);
 
   const fragment = document.createDocumentFragment();
-  // Track index across all visible dates so only the very first session opens.
-  let sessionIndex = 0;
+  // Global counter so sessions get a stable sequential number
+  // regardless of pagination — most recent first.
+  let globalSessionIndex = 0;
 
   for (const date of visibleDates) {
     const dateHeader = document.createElement('div');
@@ -52,42 +53,104 @@ export async function refreshHistory(reset = true) {
       const conjectureCount = conjecturesBySession.get(pomo.id) || 0;
       const duration = pomo.pomodoroTime || 1;
 
-      const openClass = sessionIndex === 0 ? ' open' : '';
-      sessionIndex++;
+      // Short label: "Session N" (most recent = highest number, so the
+      // session at the top of the list gets the biggest N).
+      globalSessionIndex++;
+      const sessionLabel = `Session ${globalSessionIndex}`;
+
+      const openClass = globalSessionIndex === 1 ? ' open' : '';
+
+      // Result counts for the quick-stats line
+      const correct    = problems.filter(p => p.result === 'correct').length;
+      const incorrect  = problems.filter(p => p.result === 'incorrect').length;
+      const unresolved = problems.filter(p => p.result === 'unresolved').length;
+
+      // Reading time formatted as M:SS
+      const readingMins = Math.floor((pomo.readingTime || 0) / 60);
+      const readingSecs = (pomo.readingTime || 0) % 60;
 
       const div = document.createElement('div');
       div.className = 'session-group' + openClass;
       div.dataset.pomoid = pomo.id;
+
       div.innerHTML = `
         <div class="session-header">
-          <span>
-            <strong>${pomo.pomodoroLabel || 'pomodoro_' + pomo.id}</strong>
+          <span class="session-label">
+            <strong>${escapeHtml(sessionLabel)}</strong>
           </span>
-          <span>
-            ${formatTime(duration)} | ${pomo.subject || 'no subject'} | ${pomo.mode || ''} | Ex:${problems.length}
+          <span class="session-meta mono">
+            ${formatTime(duration)}
+            <span class="dot">·</span>
+            ${escapeHtml(pomo.subject || 'no subject')}
+            <span class="dot">·</span>
+            ${escapeHtml(pomo.mode || '-')}
+            <span class="dot">·</span>
+            Ex:${problems.length}
           </span>
         </div>
         <div class="session-content">
-          <p style="padding:6px 10px; font-size:0.75rem; color:var(--text2);">
-            Phase: ${pomo.phase || '-'} | Mode: ${pomo.mode || '-'} | Subject: ${pomo.subject || '-'} | Subtopic: ${pomo.subtopicName || pomo.subtopicId || '-'}
-          </p>
-          <p style="padding:0 10px; font-size:0.75rem; color:var(--text2);">
-            Exercises: ${problems.length} (${problems.filter(p => p.result === 'correct').length} correct, ${problems.filter(p => p.result === 'incorrect').length} incorrect, ${problems.filter(p => p.result === 'unresolved').length} unresolved)
-          </p>
-          <p style="padding:0 10px 6px; font-size:0.75rem; color:var(--text2);">
-            Conjectures: ${conjectureCount} | Ex/min: ${(problems.length / (duration / 60)).toFixed(1)} | Conj/min: ${(conjectureCount / (duration / 60)).toFixed(1)} | Reading: ${Math.floor((pomo.readingTime || 0) / 60)}:${String((pomo.readingTime || 0) % 60).padStart(2, '0')}
-          </p>
-          <table>
-            <tr><th>#</th><th>Result</th><th>Time</th><th>Error</th></tr>
-            ${problems.map(p => `
-              <tr class="editable-problem" data-problem-id="${p.id}" style="cursor:pointer;">
-                <td>${p.problemNumber}</td>
-                <td>${p.result}</td>
-                <td>${formatTime(p.timeSeconds)}</td>
-                <td>${p.errorCode || ''}</td>
-              </tr>
-            `).join('')}
-          </table>
+          <div class="session-detail-grid">
+            <div>
+              <span class="detail-label">Phase</span>
+              <span class="detail-value">${escapeHtml(pomo.phase || '-')}</span>
+            </div>
+            <div>
+              <span class="detail-label">Mode</span>
+              <span class="detail-value">${escapeHtml(pomo.mode || '-')}</span>
+            </div>
+            <div>
+              <span class="detail-label">Subject</span>
+              <span class="detail-value">${escapeHtml(pomo.subject || '-')}</span>
+            </div>
+            <div>
+              <span class="detail-label">Subtopic</span>
+              <span class="detail-value">${escapeHtml(pomo.subtopicName || pomo.subtopicId || '-')}</span>
+            </div>
+            <div>
+              <span class="detail-label">Exercises</span>
+              <span class="detail-value">
+                ${problems.length}
+                <span class="result-pills">
+                  <span class="result-c" title="Correct">${correct}</span>
+                  <span class="result-i" title="Incorrect">${incorrect}</span>
+                  <span class="result-u" title="Unresolved">${unresolved}</span>
+                </span>
+              </span>
+            </div>
+            <div>
+              <span class="detail-label">Conjectures</span>
+              <span class="detail-value">${conjectureCount}</span>
+            </div>
+            <div>
+              <span class="detail-label">Reading</span>
+              <span class="detail-value mono">${readingMins}:${String(readingSecs).padStart(2, '0')}</span>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>#</th><th>Result</th><th>Time</th><th>Error</th></tr>
+              </thead>
+              <tbody>
+                ${problems.map(p => {
+                  const badgeClass = p.result === 'correct' ? 'result-c'
+                                   : p.result === 'incorrect' ? 'result-i'
+                                   : 'result-u';
+                  const badgeLetter = p.result === 'correct' ? 'C'
+                                    : p.result === 'incorrect' ? 'I'
+                                    : 'U';
+                  return `
+                    <tr class="editable-problem" data-problem-id="${p.id}" style="cursor:pointer;">
+                      <td>${p.problemNumber || '-'}</td>
+                      <td><span class="${badgeClass}">${badgeLetter}</span></td>
+                      <td class="mono">${formatTime(p.timeSeconds)}</td>
+                      <td>${escapeHtml(p.errorCode || '')}</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
         </div>
       `;
       fragment.appendChild(div);

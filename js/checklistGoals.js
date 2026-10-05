@@ -31,14 +31,17 @@ export async function refreshChecklist() {
       const topics = state.currentSyllabus.filter(t => t.subject === subject);
       if (!topics.length) continue;
 
+      // ----- Subject header -----
       const subjectDiv = document.createElement('div');
       subjectDiv.textContent = subject;
-      subjectDiv.style.fontWeight = 'bold';
-      subjectDiv.style.fontSize = '1.3rem';
-      subjectDiv.style.marginTop = '10px';
-      subjectDiv.style.paddingBottom = '4px';
-      subjectDiv.style.borderBottom = '1px solid var(--border)';
-      subjectDiv.style.color = '#fff';
+      subjectDiv.style.fontFamily = 'var(--font-display)';
+      subjectDiv.style.fontWeight = '700';
+      subjectDiv.style.fontSize = '1.15rem';
+      subjectDiv.style.letterSpacing = '-0.01em';
+      subjectDiv.style.marginTop = 'var(--space-md)';
+      subjectDiv.style.paddingBottom = 'var(--space-xs)';
+      subjectDiv.style.borderBottom = '1px solid var(--ink-border)';
+      subjectDiv.style.color = 'var(--paper)';
       fragment.appendChild(subjectDiv);
 
       for (const topic of topics) {
@@ -47,14 +50,10 @@ export async function refreshChecklist() {
 
         // ----- Subtopic row -----
         const labelSubtopic = document.createElement('label');
-        labelSubtopic.style.display = 'flex';
-        labelSubtopic.style.alignItems = 'center';
-        labelSubtopic.style.gap = '8px';
-        labelSubtopic.style.padding = '8px 0';
-        labelSubtopic.style.borderBottom = '1px solid var(--border)';
-        labelSubtopic.style.fontSize = '1.2rem';
-        labelSubtopic.style.fontFamily = 'var(--mono)';
-        labelSubtopic.style.color = 'var(--text)';
+        labelSubtopic.style.fontFamily = 'var(--font-body)';
+        labelSubtopic.style.fontWeight = '600';
+        labelSubtopic.style.fontSize = '1rem';
+        labelSubtopic.style.color = 'var(--paper)';
 
         const inputSubtopic = document.createElement('input');
         inputSubtopic.type = 'checkbox';
@@ -62,9 +61,6 @@ export async function refreshChecklist() {
         inputSubtopic.dataset.type = 'subtopic';
         inputSubtopic.dataset.subject = subject;
         inputSubtopic.dataset.subtopic = subtopicId;
-        inputSubtopic.style.width = '20px';
-        inputSubtopic.style.height = '20px';
-        inputSubtopic.style.accentColor = 'var(--accent)';
 
         const keySubtopic = `subtopic:${subtopicId}::`;
         if (completedMap.has(keySubtopic)) {
@@ -87,15 +83,11 @@ export async function refreshChecklist() {
           const chapters = (rawBook && Array.isArray(rawBook.chapters)) ? rawBook.chapters : [];
 
           const labelBook = document.createElement('label');
-          labelBook.style.display = 'flex';
-          labelBook.style.alignItems = 'center';
-          labelBook.style.gap = '8px';
-          labelBook.style.padding = '8px 0';
           labelBook.style.paddingLeft = '20px';
-          labelBook.style.borderBottom = '1px solid var(--border)';
-          labelBook.style.fontSize = '1.2rem';
-          labelBook.style.fontFamily = 'var(--mono)';
-          labelBook.style.color = 'var(--text)';
+          labelBook.style.fontFamily = 'var(--font-body)';
+          labelBook.style.fontWeight = '400';
+          labelBook.style.fontSize = '0.95rem';
+          labelBook.style.color = 'var(--paper-soft)';
 
           const inputBook = document.createElement('input');
           inputBook.type = 'checkbox';
@@ -104,9 +96,6 @@ export async function refreshChecklist() {
           inputBook.dataset.subject = subject;
           inputBook.dataset.subtopic = subtopicId;
           inputBook.dataset.book = bookName;
-          inputBook.style.width = '20px';
-          inputBook.style.height = '20px';
-          inputBook.style.accentColor = 'var(--accent)';
 
           const keyBook = `book:${subtopicId}:${bookName}:`;
           if (completedMap.has(keyBook)) {
@@ -116,22 +105,18 @@ export async function refreshChecklist() {
           total++;
 
           labelBook.appendChild(inputBook);
-          labelBook.appendChild(document.createTextNode('📖 ' + bookName));
+          labelBook.appendChild(document.createTextNode(bookName));
           fragment.appendChild(labelBook);
 
           // ----- Chapters -----
           for (const chapter of chapters) {
             const chapterLabel = formatChapter(chapter);
             const labelChapter = document.createElement('label');
-            labelChapter.style.display = 'flex';
-            labelChapter.style.alignItems = 'center';
-            labelChapter.style.gap = '8px';
-            labelChapter.style.padding = '8px 0';
             labelChapter.style.paddingLeft = '40px';
-            labelChapter.style.borderBottom = '1px solid var(--border)';
-            labelChapter.style.fontSize = '1.2rem';
-            labelChapter.style.fontFamily = 'var(--mono)';
-            labelChapter.style.color = 'var(--text)';
+            labelChapter.style.fontFamily = 'var(--font-body)';
+            labelChapter.style.fontWeight = '400';
+            labelChapter.style.fontSize = '0.9rem';
+            labelChapter.style.color = 'var(--paper-mute)';
 
             const inputChapter = document.createElement('input');
             inputChapter.type = 'checkbox';
@@ -141,9 +126,6 @@ export async function refreshChecklist() {
             inputChapter.dataset.subtopic = subtopicId;
             inputChapter.dataset.book = bookName;
             inputChapter.dataset.chapter = chapter;
-            inputChapter.style.width = '20px';
-            inputChapter.style.height = '20px';
-            inputChapter.style.accentColor = 'var(--accent)';
 
             const keyChapter = `chapter:${subtopicId}:${bookName}:${chapter}`;
             if (completedMap.has(keyChapter)) {
@@ -168,7 +150,7 @@ export async function refreshChecklist() {
     document.getElementById('checklistPercent').textContent = `${pct}% completed (${completedCount}/${total})`;
   } catch (error) {
     console.error('Error in refreshChecklist:', error);
-    container.innerHTML = '<p style="color:var(--text2);">Failed to load the checklist.</p>';
+    container.innerHTML = '<p style="color:var(--paper-mute);">Failed to load the checklist.</p>';
   }
 }
 

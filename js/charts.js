@@ -6,14 +6,46 @@ let problemsChart = null;
 let fsrsChart = null;
 let sleepChart = null;
 
-// ===================== RESIZE HOOK (used by panels.js) =====================
+// ===================== COLOR HELPERS =====================
 /**
- * Resizes all charts after the current frame has been painted.
- * Called when a panel becomes visible — Chart.js reads the container size
- * at construction time, so if the panel was hidden (display:none) when the
- * chart was first created, its canvas ends up at 0×0. Resizing after the
- * frame fixes that.
+ * Reads the design system colors from CSS custom properties so charts
+ * follow the active theme. Called at the start of every render.
+ *
+ * Palette (dark mode only):
+ *   accent  → #92140C  oxblood      (primary / incorrect)
+ *   ok      → #6E9075  dusty olive  (correct)
+ *   pending → #6D72C3  slate blue   (unresolved / neutral)
+ *   paper   → #FFF8F0  floral white (text / strokes)
+ *   ink     → #1E1E24  shadow grey  (backgrounds)
  */
+function getChartColors() {
+  const root = getComputedStyle(document.documentElement);
+  const get = (v) => root.getPropertyValue(v).trim();
+
+  return {
+    accent:       get('--accent')       || '#92140C',
+    accentSoft:   get('--accent-soft')  || 'rgba(146,20,12,0.12)',
+    accentHover:  get('--accent-hover') || '#B01A10',
+
+    ok:           get('--ok')           || '#6E9075',
+    okSoft:       get('--ok-soft')      || 'rgba(110,144,117,0.15)',
+    okHover:      get('--ok-hover')     || '#7FA288',
+
+    pending:      get('--pending')      || '#6D72C3',
+    pendingSoft:  get('--pending-soft') || 'rgba(109,114,195,0.15)',
+    pendingHover: get('--pending-hover')|| '#8085D0',
+
+    paper:        get('--paper')        || '#FFF8F0',
+    paperSoft:    get('--paper-soft')   || 'rgba(255,248,240,0.7)',
+    paperMute:    get('--paper-mute')   || 'rgba(255,248,240,0.45)',
+
+    ink:          get('--ink')          || '#1E1E24',
+    inkSoft:      get('--ink-soft')     || '#26262D',
+    inkBorder:    get('--ink-border')   || 'rgba(255,248,240,0.08)'
+  };
+}
+
+// ===================== RESIZE HOOK (used by panels.js) =====================
 export function resizeChartsSoon() {
   requestAnimationFrame(() => {
     if (problemsChart) problemsChart.resize();
@@ -22,10 +54,21 @@ export function resizeChartsSoon() {
   });
 }
 
+// ===================== THEME REACTIVITY =====================
+// events.js dispatches 'sq-theme-changed' when the user toggles the theme.
+// Re-render all charts so they pick up the new CSS variable values.
+window.addEventListener('sq-theme-changed', () => {
+  renderProblemsChart().catch(() => {});
+  renderFSRSChart().catch(() => {});
+  refreshSleepChart().catch(() => {});
+});
+
 // ===================== PROBLEMS SCATTER CHART =====================
 export async function renderProblemsChart() {
   const ctx = document.getElementById('chartProblems')?.getContext('2d');
   if (!ctx) return;
+
+  const C = getChartColors();
 
   const problems = await db.sessions.where('type').equals('problem').toArray();
   const filtered = problems.filter(p => p.subject === state.selectedChartSubject);
@@ -36,11 +79,15 @@ export async function renderProblemsChart() {
   const pointsA = filtered.filter(p => p.mode === 'A');
   const pointsB = filtered.filter(p => p.mode === 'B');
 
+  // Result colors — semantic mapping to the new palette.
+  //   correct    → dusty olive
+  //   incorrect  → oxblood
+  //   unresolved → slate blue
   function colorForResult(result) {
-    if (result === 'correct') return '#3dd6c8';
-    if (result === 'incorrect') return '#fa5c7c';
-    if (result === 'unresolved') return '#5c7cfa';
-    return '#ffffff';
+    if (result === 'correct')    return C.ok;
+    if (result === 'incorrect')  return C.accent;
+    if (result === 'unresolved') return C.pending;
+    return C.paper;
   }
 
   const dataA = pointsA.map((p, index) => ({
@@ -64,7 +111,7 @@ export async function renderProblemsChart() {
       pointRadius: 5,
       pointHoverRadius: 7,
       pointBackgroundColor: dataA.map(d => colorForResult(d.problem.result)),
-      pointBorderColor: '#323437',
+      pointBorderColor: C.ink,
       pointBorderWidth: 1.5,
       showLine: false,
       type: 'scatter'
@@ -101,9 +148,9 @@ export async function renderProblemsChart() {
       label: 'Avg 10',
       data: averages,
       type: 'line',
-      borderColor: '#ca4754',
+      borderColor: C.paperSoft,
       backgroundColor: 'transparent',
-      borderWidth: 2.5,
+      borderWidth: 2,
       pointRadius: 0,
       tension: 0.35
     });
@@ -111,6 +158,16 @@ export async function renderProblemsChart() {
 
   if (problemsChart) {
     problemsChart.data.datasets = datasets;
+    problemsChart.options.scales.x.title.color = C.paperMute;
+    problemsChart.options.scales.y.title.color = C.paperMute;
+    problemsChart.options.scales.x.ticks.color = C.paperMute;
+    problemsChart.options.scales.y.ticks.color = C.paperMute;
+    problemsChart.options.scales.x.grid.color = C.inkBorder;
+    problemsChart.options.scales.y.grid.color = C.inkBorder;
+    problemsChart.options.plugins.tooltip.backgroundColor = C.inkSoft;
+    problemsChart.options.plugins.tooltip.borderColor = C.inkBorder;
+    problemsChart.options.plugins.tooltip.titleColor = C.paper;
+    problemsChart.options.plugins.tooltip.bodyColor = C.paperSoft;
     problemsChart.update();
   } else {
     problemsChart = new Chart(ctx, {
@@ -122,11 +179,12 @@ export async function renderProblemsChart() {
         animation: false,
         plugins: {
           tooltip: {
-            backgroundColor: '#2c2e31',
-            titleColor: '#d1d0c5',
-            bodyColor: '#d1d0c5',
-            borderColor: '#646669',
+            backgroundColor: C.inkSoft,
+            titleColor: C.paper,
+            bodyColor: C.paperSoft,
+            borderColor: C.inkBorder,
             borderWidth: 1,
+            padding: 10,
             callbacks: {
               title: (items) => {
                 if (!items.length) return '';
@@ -155,20 +213,20 @@ export async function renderProblemsChart() {
         scales: {
           x: {
             type: 'linear',
-            title: { display: true, text: 'Problem # (sequential)', color: '#646669' },
+            title: { display: true, text: 'Problem # (sequential)', color: C.paperMute },
             ticks: {
-              color: '#646669',
+              color: C.paperMute,
               stepSize: 1,
               callback: function (value) { return Number.isInteger(value) ? value : ''; }
             },
-            grid: { color: 'rgba(100,102,105,0.2)', borderDash: [2, 2] }
+            grid: { color: C.inkBorder, borderDash: [2, 2], drawBorder: false }
           },
           y: {
-            title: { display: true, text: 'Minutes', color: '#646669' },
+            title: { display: true, text: 'Minutes', color: C.paperMute },
             beginAtZero: true,
             grace: '5%',
-            ticks: { color: '#646669' },
-            grid: { color: 'rgba(100,102,105,0.2)', borderDash: [2, 2] }
+            ticks: { color: C.paperMute },
+            grid: { color: C.inkBorder, borderDash: [2, 2], drawBorder: false }
           }
         }
       }
@@ -181,7 +239,9 @@ export async function renderFSRSChart() {
   const ctx = document.getElementById('chartFSRS')?.getContext('2d');
   if (!ctx) return;
 
+  const C = getChartColors();
   const reviews = await db.reviews.orderBy('date').toArray();
+
   if (reviews.length === 0) {
     if (fsrsChart) {
       fsrsChart.destroy();
@@ -207,6 +267,21 @@ export async function renderFSRSChart() {
     fsrsChart.data.labels = days;
     fsrsChart.data.datasets[0].data = avgStability;
     fsrsChart.data.datasets[1].data = avgDifficulty;
+    fsrsChart.data.datasets[0].borderColor = C.accent;
+    fsrsChart.data.datasets[0].backgroundColor = C.accentSoft;
+    fsrsChart.data.datasets[0].pointBackgroundColor = C.accent;
+    fsrsChart.data.datasets[1].borderColor = C.pending;
+    fsrsChart.data.datasets[1].backgroundColor = 'transparent';
+    fsrsChart.data.datasets[1].pointBackgroundColor = C.pending;
+    fsrsChart.options.scales.x.ticks.color = C.paperMute;
+    fsrsChart.options.scales.y.ticks.color = C.paperMute;
+    fsrsChart.options.scales.x.grid.color = C.inkBorder;
+    fsrsChart.options.scales.y.grid.color = C.inkBorder;
+    fsrsChart.options.plugins.tooltip.backgroundColor = C.inkSoft;
+    fsrsChart.options.plugins.tooltip.borderColor = C.inkBorder;
+    fsrsChart.options.plugins.tooltip.titleColor = C.paper;
+    fsrsChart.options.plugins.tooltip.bodyColor = C.paperSoft;
+    fsrsChart.options.plugins.legend.labels.color = C.paperSoft;
     fsrsChart.update();
   } else {
     fsrsChart = new Chart(ctx, {
@@ -217,19 +292,22 @@ export async function renderFSRSChart() {
           {
             label: 'Average stability',
             data: avgStability,
-            borderColor: '#ca4754',
-            backgroundColor: 'transparent',
+            borderColor: C.accent,
+            backgroundColor: C.accentSoft,
+            fill: true,
             borderWidth: 2,
-            pointRadius: 4,
+            pointRadius: 3,
+            pointBackgroundColor: C.accent,
             tension: 0.3
           },
           {
             label: 'Average difficulty',
             data: avgDifficulty,
-            borderColor: '#646669',
+            borderColor: C.pending,
             backgroundColor: 'transparent',
             borderWidth: 2,
-            pointRadius: 4,
+            pointRadius: 3,
+            pointBackgroundColor: C.pending,
             tension: 0.3
           }
         ]
@@ -240,25 +318,32 @@ export async function renderFSRSChart() {
         animation: false,
         plugins: {
           tooltip: {
-            backgroundColor: '#2c2e31',
-            titleColor: '#d1d0c5',
-            bodyColor: '#d1d0c5',
-            borderColor: '#646669',
-            borderWidth: 1
+            backgroundColor: C.inkSoft,
+            titleColor: C.paper,
+            bodyColor: C.paperSoft,
+            borderColor: C.inkBorder,
+            borderWidth: 1,
+            padding: 10
           },
           legend: {
             display: true,
-            labels: { color: '#d1d0c5', font: { family: 'Roboto Mono' } }
+            labels: {
+              color: C.paperSoft,
+              font: { family: 'Inter', size: 12 },
+              boxWidth: 10,
+              boxHeight: 10,
+              usePointStyle: true
+            }
           }
         },
         scales: {
           x: {
-            ticks: { color: '#646669' },
-            grid: { color: 'rgba(100,102,105,0.2)', borderDash: [2, 2] }
+            ticks: { color: C.paperMute, font: { family: 'JetBrains Mono', size: 11 } },
+            grid: { color: C.inkBorder, drawBorder: false }
           },
           y: {
-            ticks: { color: '#646669' },
-            grid: { color: 'rgba(100,102,105,0.2)', borderDash: [2, 2] }
+            ticks: { color: C.paperMute, font: { family: 'JetBrains Mono', size: 11 } },
+            grid: { color: C.inkBorder, drawBorder: false }
           }
         }
       }
@@ -271,7 +356,7 @@ export async function renderFSRSChart() {
  * Renders a 12-month activity heatmap.
  *
  * The container is a CSS grid with `grid-auto-flow: column` and
- * `grid-template-rows: repeat(7, 12px)`, so every column = one week and
+ * `grid-template-rows: repeat(7, 10px)`, so every column = one week and
  * every row = the same weekday. To keep that alignment:
  *   - `start` is the Sunday on or before the 1st of the month 11 months ago.
  *   - `end` is the Saturday on or after today.
@@ -284,18 +369,15 @@ export async function renderHeatmap(sessions) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // Start: 1st of the month, 11 months ago, aligned to the previous Sunday.
   const start = new Date(today);
   start.setMonth(today.getMonth() - 11);
   start.setDate(1);
   start.setHours(0, 0, 0, 0);
   start.setDate(start.getDate() - start.getDay());
 
-  // End: Saturday of the current week (so the last column is complete).
   const end = new Date(today);
   end.setDate(end.getDate() + (6 - end.getDay()));
 
-  // Aggregate hours by day from pomodoro sessions.
   const hoursByDay = new Map();
   sessions.filter(s => s.type === 'pomodoro').forEach(s => {
     const date = s.date || formatDate(s.timestamp);
@@ -315,7 +397,6 @@ export async function renderHeatmap(sessions) {
     cell.className = 'heatmap-day';
 
     if (cursor > today) {
-      // Future days: keep the cell in the grid but mark it invisible.
       cell.dataset.future = '1';
       cell.title = `${dateStr} (future)`;
     } else {
@@ -336,7 +417,9 @@ export async function refreshSleepChart() {
   const ctx = document.getElementById('chartSleep')?.getContext('2d');
   if (!ctx) return;
 
+  const C = getChartColors();
   const records = await db.sleep.orderBy('date').toArray();
+
   if (records.length === 0) {
     if (sleepChart) {
       sleepChart.destroy();
@@ -363,6 +446,12 @@ export async function refreshSleepChart() {
     sleepChart.data.datasets[0].data = qualityData;
     sleepChart.data.datasets[1].data = bedtimeMinutes;
     sleepChart.data.datasets[2].data = wakeupMinutes;
+    sleepChart.data.datasets[0].borderColor = C.accent;
+    sleepChart.data.datasets[0].pointBackgroundColor = C.accent;
+    sleepChart.data.datasets[1].borderColor = C.pending;
+    sleepChart.data.datasets[1].pointBackgroundColor = C.pending;
+    sleepChart.data.datasets[2].borderColor = C.ok;
+    sleepChart.data.datasets[2].pointBackgroundColor = C.ok;
     sleepChart.update();
   } else {
     sleepChart = new Chart(ctx, {
@@ -373,29 +462,35 @@ export async function refreshSleepChart() {
           {
             label: 'Quality (0-10)',
             data: qualityData,
-            borderColor: '#ca4754',
+            borderColor: C.accent,
             backgroundColor: 'transparent',
             yAxisID: 'y',
             tension: 0.3,
-            pointRadius: 4
+            pointRadius: 3,
+            pointBackgroundColor: C.accent,
+            borderWidth: 2
           },
           {
             label: 'Bedtime',
             data: bedtimeMinutes,
-            borderColor: '#646669',
+            borderColor: C.pending,
             backgroundColor: 'transparent',
             yAxisID: 'y1',
             tension: 0.3,
-            pointRadius: 4
+            pointRadius: 3,
+            pointBackgroundColor: C.pending,
+            borderWidth: 2
           },
           {
             label: 'Wake up',
             data: wakeupMinutes,
-            borderColor: '#3dd6c8',
+            borderColor: C.ok,
             backgroundColor: 'transparent',
             yAxisID: 'y1',
             tension: 0.3,
-            pointRadius: 4
+            pointRadius: 3,
+            pointBackgroundColor: C.ok,
+            borderWidth: 2
           }
         ]
       },
@@ -403,37 +498,24 @@ export async function refreshSleepChart() {
         responsive: true,
         maintainAspectRatio: false,
         animation: false,
-        scales: {
-          y: {
-            type: 'linear',
-            display: true,
-            position: 'left',
-            min: 0,
-            max: 10,
-            title: { display: true, text: 'Quality (0-10)', color: '#646669' }
-          },
-          y1: {
-            type: 'linear',
-            display: true,
-            position: 'right',
-            min: 0,
-            max: 1440,
-            title: { display: true, text: 'Minutes since midnight', color: '#646669' },
-            ticks: {
-              stepSize: 60,
-              callback: function (value) {
-                const h24 = Math.floor(value / 60);
-                const m = value % 60;
-                const ampm = h24 >= 12 ? 'PM' : 'AM';
-                let h12 = h24 % 12;
-                if (h12 === 0) h12 = 12;
-                return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
-              }
-            }
-          }
-        },
         plugins: {
+          legend: {
+            display: true,
+            labels: {
+              color: C.paperSoft,
+              font: { family: 'Inter', size: 11 },
+              boxWidth: 10,
+              boxHeight: 10,
+              usePointStyle: true
+            }
+          },
           tooltip: {
+            backgroundColor: C.inkSoft,
+            titleColor: C.paper,
+            bodyColor: C.paperSoft,
+            borderColor: C.inkBorder,
+            borderWidth: 1,
+            padding: 10,
             callbacks: {
               label: function (context) {
                 let label = context.dataset.label || '';
@@ -452,6 +534,43 @@ export async function refreshSleepChart() {
                 return label;
               }
             }
+          }
+        },
+        scales: {
+          y: {
+            type: 'linear',
+            display: true,
+            position: 'left',
+            min: 0,
+            max: 10,
+            title: { display: true, text: 'Quality', color: C.paperMute },
+            ticks: { color: C.paperMute, font: { family: 'JetBrains Mono', size: 11 } },
+            grid: { color: C.inkBorder, drawBorder: false }
+          },
+          y1: {
+            type: 'linear',
+            display: true,
+            position: 'right',
+            min: 0,
+            max: 1440,
+            title: { display: true, text: 'Time', color: C.paperMute },
+            ticks: {
+              color: C.paperMute,
+              font: { family: 'JetBrains Mono', size: 11 },
+              stepSize: 360,
+              callback: function (value) {
+                const h24 = Math.floor(value / 60);
+                const m = value % 60;
+                let h12 = h24 % 12;
+                if (h12 === 0) h12 = 12;
+                return `${h12}${m ? ':' + String(m).padStart(2, '0') : ''}`;
+              }
+            },
+            grid: { display: false, drawBorder: false }
+          },
+          x: {
+            ticks: { color: C.paperMute, font: { family: 'JetBrains Mono', size: 10 } },
+            grid: { color: C.inkBorder, drawBorder: false }
           }
         }
       }

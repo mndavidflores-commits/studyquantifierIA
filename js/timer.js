@@ -8,13 +8,23 @@ import {
 } from './ui.js';
 import { createMistakeFromProblem, refreshSubtopicHistory, refreshSessionConjectures } from './reviews.js';
 
+// ===================== FOCUS GUARD =====================
+// Space and 'd' should NOT fire when the user is typing in a real form field.
+// A focused <button> is fine — the pomodoro Start button stays focused after
+// clicking, and previously this blocked Space from starting the problem timer.
+function isFormFieldFocused() {
+  const el = document.activeElement;
+  if (!el) return false;
+  const tag = el.tagName;
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+}
+
 // ===================== KEYBOARD =====================
 document.addEventListener('keydown', e => {
   // 'd' = log a distraction
   if (e.key === 'd' && !e.ctrlKey && !e.metaKey && !e.altKey) {
     if (state.session.state !== PomodoroState.IDLE && state.session.state !== PomodoroState.SESSION_ENDING) {
-      const tag = document.activeElement?.tagName;
-      if (!document.activeElement || tag === 'BODY') {
+      if (!isFormFieldFocused()) {
         e.preventDefault();
         state.session.distractions++;
         showToast('logged ✅', 1500);
@@ -24,8 +34,7 @@ document.addEventListener('keydown', e => {
 
   // Space = stop the current problem (if running)
   if (e.key === ' ' || e.code === 'Space') {
-    const tag = document.activeElement?.tagName;
-    if (document.activeElement && tag !== 'BODY') return;
+    if (isFormFieldFocused()) return;
     if (document.getElementById('modalSummary')?.style.display === 'flex') return;
     if (state.session.state === PomodoroState.IDLE || state.session.state === PomodoroState.SESSION_ENDING) return;
     if (state.blindTimer.running) {
@@ -38,8 +47,7 @@ document.addEventListener('keydown', e => {
 document.addEventListener('keyup', e => {
   // Space = start a new problem (if not running / not pending result)
   if (e.key === ' ' || e.code === 'Space') {
-    const tag = document.activeElement?.tagName;
-    if (document.activeElement && tag !== 'BODY') return;
+    if (isFormFieldFocused()) return;
     if (state.session.state === PomodoroState.IDLE || state.session.state === PomodoroState.SESSION_ENDING) return;
     if (!state.blindTimer.running && !state.blindTimer.pendingResult) {
       e.preventDefault();
@@ -47,6 +55,15 @@ document.addEventListener('keyup', e => {
     }
   }
 });
+
+// ===================== TOUCH PROTECTION =====================
+let lastToggleTime = 0;
+function shouldToggle() {
+  const now = Date.now();
+  if (now - lastToggleTime < 300) return false;
+  lastToggleTime = now;
+  return true;
+}
 
 // ===================== TOUCH EVENTS =====================
 const activeViewElement = document.getElementById('active-view');
@@ -86,15 +103,6 @@ if (activeViewElement) {
       stopBlindTimerAndShowResult();
     }
   });
-}
-
-// ===================== TOUCH PROTECTION =====================
-let lastToggleTime = 0;
-function shouldToggle() {
-  const now = Date.now();
-  if (now - lastToggleTime < 300) return false;
-  lastToggleTime = now;
-  return true;
 }
 
 // ===================== RESULT TOGGLE (MODE A) =====================
@@ -166,7 +174,6 @@ if (btnNextProblemEl) {
       sessionId: state.session.tempId
     });
 
-    // Create a mistake record for incorrect / unresolved problems in Mode A
     if (mode === 'A' && (result === 'incorrect' || result === 'unresolved')) {
       await createMistakeFromProblem({
         subject,
@@ -185,7 +192,6 @@ if (btnNextProblemEl) {
       state.currentProblemNumber = state.blindTimer.previousProblemNumber + 1;
     }
 
-    // Reset result card & UI
     document.getElementById('cardResult').style.display = 'none';
     document.getElementById('timerDisplay').style.display = 'block';
     document.getElementById('conjecture-inline').classList.remove('hidden');
@@ -208,8 +214,6 @@ if (btnNextProblemEl) {
     refreshAll();
     refreshSubtopicHistory();
 
-    // If the pomodoro already ended, transition now.
-    // Dynamic import to avoid the circular dependency with pomodoro.js.
     if (state.session.pendingSessionEnd) {
       state.session.pendingSessionEnd = false;
       const { transition } = await import('./pomodoro.js');
@@ -245,7 +249,6 @@ if (btnDiscardProblemEl) {
     document.getElementById('left-panel').classList.remove('hidden');
     refreshSubtopicHistory();
 
-    // Dynamic import to avoid the circular dependency with pomodoro.js.
     if (state.session.pendingSessionEnd) {
       state.session.pendingSessionEnd = false;
       const { transition } = await import('./pomodoro.js');
@@ -266,7 +269,6 @@ if (btnSaveConjectureEl) {
     const text = document.getElementById('conjectureText').value.trim();
     if (!text) return;
 
-    // In Mode B, prefer the active recall group's subject/subtopic.
     const group = state.currentRecallGroup;
     const mode = state.session.mode;
 

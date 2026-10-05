@@ -1,7 +1,7 @@
 // ===================== CONFIG =====================
 // Bump this version string whenever you push updates — this forces all
 // clients to fetch the new assets and drop the old cache.
-const CACHE_VERSION = 'studyquantifier-v4';
+const CACHE_VERSION = 'studyquantifier-v6';
 const CACHE_NAME = CACHE_VERSION;
 
 // Local assets — cache-first, always offline-available.
@@ -41,6 +41,10 @@ const STATIC_ASSETS = [
 ];
 
 // Third-party origins that we want to cache at runtime (cache-first, then network).
+// - unpkg.com            → Lucide icons
+// - cdn.jsdelivr.net     → Chart.js, Chart.js date adapter, ts-fsrs, Supabase JS
+// - fonts.googleapis.com → CSS de Google Fonts (Fraunces, Inter, JetBrains Mono)
+// - fonts.gstatic.com    → archivos .woff2 reales de las fuentes
 const RUNTIME_CACHE_HOSTS = [
   'unpkg.com',
   'cdn.jsdelivr.net',
@@ -56,8 +60,6 @@ self.addEventListener('install', event => {
   self.skipWaiting();
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
-    // Cache each asset independently so one missing file (e.g. a maskable
-    // icon that hasn't been generated yet) doesn't blow up the whole install.
     await Promise.all(
       STATIC_ASSETS.map(url =>
         cache.add(url).catch(err => {

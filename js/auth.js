@@ -18,7 +18,6 @@ export function updateAuthUI(session) {
   const authStatus = document.getElementById('auth-status');
   const btnLogin = document.getElementById('btn-login');
   const btnLogout = document.getElementById('btn-logout');
-  const btnGuest = document.getElementById('btn-guest');
   const appContent = document.getElementById('app-content');
   const userEmail = document.getElementById('user-email');
   const authSection = document.getElementById('auth-section');
@@ -26,9 +25,8 @@ export function updateAuthUI(session) {
   if (session?.user) {
     if (authStatus) authStatus.textContent = `Signed in as ${session.user.email}`;
     if (btnLogin) btnLogin.style.display = 'none';
-    if (btnGuest) btnGuest.style.display = 'none';
     if (btnLogout) btnLogout.style.display = 'inline-block';
-    if (appContent) appContent.style.display = 'block';
+    if (appContent) appContent.style.display = 'flex'; // <- flex, not block
     if (userEmail) userEmail.textContent = session.user.email;
     if (authSection) authSection.classList.add('hidden');
 
@@ -40,7 +38,6 @@ export function updateAuthUI(session) {
     state.appInitialized = false;
     if (authStatus) authStatus.textContent = 'You are not signed in.';
     if (btnLogin) btnLogin.style.display = 'inline-block';
-    if (btnGuest) btnGuest.style.display = 'inline-block';
     if (btnLogout) btnLogout.style.display = 'none';
     if (appContent) appContent.style.display = 'none';
     if (authSection) authSection.classList.remove('hidden');
@@ -51,39 +48,33 @@ export function updateAuthUI(session) {
 export async function initApp() {
   await syncAll({ silent: true });
 
-  // Load active syllabus from local DB (if any)
   const storedSyllabus = await db.syllabus.get('active');
   if (storedSyllabus?.content) {
     state.currentSyllabus.length = 0;
     state.currentSyllabus.push(...storedSyllabus.content);
   }
 
-  // Load goal active days
   const storedDays = await db.goals.get('activeGoalDays');
   if (storedDays && Array.isArray(storedDays.value)) {
     state.activeGoalDays = storedDays.value;
   }
   markActiveDays();
 
-  // Populate selectors
   await populateSubjects();
   verifyAddSubject();
 
   const selSubject = document.getElementById('selSubject');
   if (selSubject) selSubject.dispatchEvent(new Event('change'));
 
-  // Default date on sleep form
   const dateSleep = document.getElementById('dateSleep');
   if (dateSleep) dateSleep.value = todayLocal();
 
-  // Refresh pomodoro UI
   updatePomodoroDisplay();
   updatePomodoroStatusText();
   updatePomodoroButtons();
   updatePomodoroModeButton();
   setConfigEnabled(true);
 
-  // Disable controls that only make sense during a session
   const btnDistract = document.getElementById('btnDistract');
   if (btnDistract) btnDistract.disabled = true;
   const btnReadingStart = document.getElementById('btnReadingStart');

@@ -1,6 +1,29 @@
 import { state, PomodoroState } from './config.js';
 import { formatTime, showToast } from './utils.js';
 
+// ===================== ICON HELPER (Lucide) =====================
+/**
+ * Replaces the icon inside a button with a new Lucide icon and re-hydrates it.
+ * Keeps the original `id` attribute on the <i> if it exists, so other code
+ * that reads `#readingIconFloat` etc. keeps working.
+ */
+function setButtonIcon(buttonId, iconName) {
+  const btn = document.getElementById(buttonId);
+  if (!btn) return;
+  const oldIcon = btn.querySelector('i, svg');
+  if (!oldIcon) return;
+
+  const newIcon = document.createElement('i');
+  newIcon.setAttribute('data-lucide', iconName);
+  newIcon.setAttribute('aria-hidden', 'true');
+  if (oldIcon.id) newIcon.id = oldIcon.id;
+
+  oldIcon.replaceWith(newIcon);
+  if (window.lucide && typeof window.lucide.createIcons === 'function') {
+    window.lucide.createIcons();
+  }
+}
+
 // ===================== CONFIG CONTROLS =====================
 /**
  * Enables or disables the session configuration selectors.
@@ -49,22 +72,33 @@ export function updatePomodoroModeButton() {
   updatePomodoroDisplay();
 }
 
+// ===================== POMODORO STATUS TEXT =====================
+// Centralized map so the state → label relationship is easy to update.
+const POMO_STATUS_TEXT = {
+  [PomodoroState.IDLE]:           'Ready',
+  [PomodoroState.FOCUS_RUNNING]:  'Focus',
+  [PomodoroState.FOCUS_PAUSED]:   'Focus paused',
+  [PomodoroState.BREAK_RUNNING]:  'Break',
+  [PomodoroState.BREAK_PAUSED]:   'Break paused',
+  [PomodoroState.SESSION_ENDING]: 'Stopped'
+};
+
 export function updatePomodoroStatusText() {
   const el = document.getElementById('pomoStatus');
   if (el) {
-    switch (state.session.state) {
-      case PomodoroState.FOCUS_RUNNING:   el.textContent = 'Focus'; break;
-      case PomodoroState.FOCUS_PAUSED:    el.textContent = 'Focus (paused)'; break;
-      case PomodoroState.BREAK_RUNNING:   el.textContent = 'Break'; break;
-      case PomodoroState.BREAK_PAUSED:    el.textContent = 'Break (paused)'; break;
-      case PomodoroState.SESSION_ENDING:  el.textContent = 'Stopped'; break;
-      default:                            el.textContent = 'Focus';
-    }
+    el.textContent = POMO_STATUS_TEXT[state.session.state] || 'Ready';
   }
+
+  // The circle border turns muted during break states (visual cue).
   const circle = document.getElementById('pomoCircle');
-  if (circle) circle.classList.toggle('break', state.session.state.startsWith('BREAK'));
+  if (circle) {
+    const isBreak = state.session.state === PomodoroState.BREAK_RUNNING
+                 || state.session.state === PomodoroState.BREAK_PAUSED;
+    circle.classList.toggle('break', isBreak);
+  }
 }
 
+// ===================== POMODORO BUTTONS =====================
 export function updatePomodoroButtons() {
   const st = state.session.state;
   const setDisplay = (id, visible, displayValue = 'inline-flex') => {
@@ -75,18 +109,21 @@ export function updatePomodoroButtons() {
   setDisplay('btnPomoStart', st === PomodoroState.IDLE);
   setDisplay('btnPomoPause', st === PomodoroState.FOCUS_RUNNING || st === PomodoroState.BREAK_RUNNING);
   setDisplay('btnPomoResume', st === PomodoroState.FOCUS_PAUSED || st === PomodoroState.BREAK_PAUSED);
+
   const sessionActive = st !== PomodoroState.IDLE && st !== PomodoroState.SESSION_ENDING;
   setDisplay('btnPomoStop', sessionActive);
   setDisplay('btnPomoReset', sessionActive);
 
-  // Floating buttons
+  // Floating pause/play button — swap icon based on current state.
   const floatPause = document.getElementById('btnPomoPauseFloat');
   if (floatPause) {
     floatPause.style.display = sessionActive ? '' : 'none';
     if (sessionActive) {
-      floatPause.textContent = (st === PomodoroState.FOCUS_RUNNING || st === PomodoroState.BREAK_RUNNING) ? '⏯' : '▶';
+      const running = (st === PomodoroState.FOCUS_RUNNING || st === PomodoroState.BREAK_RUNNING);
+      setButtonIcon('btnPomoPauseFloat', running ? 'pause' : 'play');
     }
   }
+
   setDisplay('btnPomoStopFloat', sessionActive, '');
   setDisplay('btnPomoResetFloat', sessionActive, '');
 }
@@ -113,11 +150,14 @@ export function stopReadingInterval() {
     const total = document.getElementById('readingTotal');
     if (total) total.textContent = display;
 
-    // Update float button: icon + accumulated time, without destroying the elements
-    const iconFloat = document.getElementById('readingIconFloat');
-    if (iconFloat) iconFloat.textContent = '▶';
+    // Both reading blocks (in #pomo-float and #reading-float) reset their icon.
+    setButtonIcon('btnReadingToggleFloat', 'play');
+    setButtonIcon('btnReadingToggleFloatB', 'play');
+
     const totalFloat = document.getElementById('readingTotalFloat');
     if (totalFloat) totalFloat.textContent = display;
+    const totalFloatB = document.getElementById('readingTotalFloatB');
+    if (totalFloatB) totalFloatB.textContent = display;
   }
 }
 
@@ -191,11 +231,11 @@ export function stopBlindTimerAndShowResult() {
   const activeView = document.getElementById('active-view');
   if (activeView) activeView.classList.remove('timer-running');
   const timerDisplay = document.getElementById('timerDisplay');
-  if (timerDisplay) timerDisplay.style.display = 'none';
+  if (timerDisplay) timerDisplay.style.display = 'block';
   const conjInline = document.getElementById('conjecture-inline');
-  if (conjInline) conjInline.classList.add('hidden');
+  if (conjInline) conjInline.classList.remove('hidden');
   const leftPanel = document.getElementById('left-panel');
-  if (leftPanel) leftPanel.classList.add('hidden');
+  if (leftPanel) leftPanel.classList.remove('hidden');
 
   state.blindTimer.pendingResult = true;
 }

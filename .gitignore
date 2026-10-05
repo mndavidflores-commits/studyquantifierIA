@@ -1,0 +1,21 @@
+# Dependencies (regenerated with `npm install`)
+node_modules/
+
+# Environment files (secrets)
+.env
+.env.local
+.env.*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*

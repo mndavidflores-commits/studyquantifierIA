@@ -6,54 +6,44 @@ import './timer.js';
 
 // ===================== CONFIG =====================
 const OWNER_EMAIL = 'mndavidflores@gmail.com';
-const GUEST_FLAG = 'studyquantifier_guest';
-const GUEST_SESSION = {
-  user: { id: 'local-guest-user', email: 'guest@studyquantifier.local' }
-};
+
+// ===================== HELPERS =====================
+function rehydrateLucide() {
+  if (window.lucide && typeof window.lucide.createIcons === 'function') {
+    window.lucide.createIcons();
+  }
+}
+
+// ===================== OWNER CHECK =====================
+/**
+ * Signs out any session whose email is not the owner's, and shows an alert
+ * only once per tab (sessionStorage guard) so a stale token can't cause an
+ * infinite reload loop.
+ */
+async function checkOwnerAccess(session) {
+  const user = session?.user;
+  if (!user) return true;
+  if (user.email === OWNER_EMAIL) return true;
+
+  await supabase.auth.signOut();
+
+  if (!sessionStorage.getItem('owner-check-done')) {
+    sessionStorage.setItem('owner-check-done', '1');
+    alert('Access denied. This application is private.');
+  }
+  return false;
+}
 
 // ===================== AUTH RESOLUTION =====================
-/**
- * Decides which UI to show based on:
- *   (a) any real Supabase session, and
- *   (b) the local guest flag in localStorage.
- *
- * Called on boot and on every auth state change. Safe to call multiple times.
- */
 async function resolveAuth(session) {
-  const user = session?.user;
-
-  // ---- 1) Real Supabase session ----
-  if (user) {
-    // Owner: clear any stale guest flag and proceed.
-    if (user.email === OWNER_EMAIL) {
-      localStorage.removeItem(GUEST_FLAG);
-      sessionStorage.removeItem('owner-check-done');
-      updateAuthUI(session);
-      return;
-    }
-
-    // Non-owner: app is currently owner-only. Sign out.
-    // Show the alert only ONCE per tab, otherwise a bad token would cause
-    // an infinite alert → reload loop.
-    await supabase.auth.signOut();
-    localStorage.removeItem(GUEST_FLAG);
-
-    if (!sessionStorage.getItem('owner-check-done')) {
-      sessionStorage.setItem('owner-check-done', '1');
-      alert('Acceso denegado. Esta aplicación es privada.');
-    }
+  const allowed = await checkOwnerAccess(session);
+  if (!allowed) {
     updateAuthUI(null);
+    rehydrateLucide();
     return;
   }
-
-  // ---- 2) No Supabase session: is the user a guest? ----
-  if (localStorage.getItem(GUEST_FLAG) === 'true') {
-    updateAuthUI(GUEST_SESSION);
-    return;
-  }
-
-  // ---- 3) Nothing: signed out, not a guest ----
-  updateAuthUI(null);
+  updateAuthUI(session);
+  rehydrateLucide();
 }
 
 // ===================== INITIAL AUTH CHECK =====================

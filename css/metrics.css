@@ -1,130 +1,161 @@
-/* ========== METRICS PANEL ========== */
-#panelMetrics.active {
-  display: block;
-}
+/* ============================================================
+   Studyquantifier — Panel-specific styles
+   Metrics, Comparison, Goals, Sleep, History, Notes, Checklist,
+   Conjectures.
+   Dark mode only.
+   ============================================================ */
 
+/* ============================================================
+   METRICS — LAYOUT
+   ============================================================ */
 .metric-dashboard {
-  display: grid;
-  gap: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
   width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
 }
 
+/* ---------- Top row: profile + 3 stats ---------- */
 .metric-top-row {
   display: grid;
-  grid-template-columns: 1fr 3fr;
-  gap: 20px;
+  grid-template-columns: minmax(280px, 1fr) 2fr;
+  gap: var(--space-md);
   align-items: stretch;
 }
 
 .metric-profile {
   display: flex;
   align-items: center;
-  gap: 15px;
-  padding: 20px;
+  gap: var(--space-md);
 }
 
 .avatar {
-  width: 50px;
-  height: 50px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   background: var(--accent);
-  color: #fff;
+  color: var(--paper);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: bold;
-  font-size: 1.2rem;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.1rem;
   flex-shrink: 0;
+  letter-spacing: -0.02em;
 }
 
 .user-info {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
+/* Name uses body font — Fraunces is reserved for section titles.
+   Video 2, Mistake 5: one strong typography system. */
 .user-name {
-  font-size: 1.2rem;
+  font-family: var(--font-body);
   font-weight: 600;
-  color: #fff;
-  margin-bottom: 2px;
-  font-family: var(--font);
+  font-size: 1rem;
+  color: var(--paper);
+  letter-spacing: 0;
+  line-height: 1.2;
 }
 
 .user-register {
-  font-size: 0.8rem;
-  color: var(--text2);
-  font-family: var(--mono);
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  color: var(--paper-mute);
 }
 
 .user-streak {
-  font-size: 0.9rem;
-  color: var(--accent);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--paper-soft);
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin: 4px 0;
-  font-family: var(--mono);
+}
+
+.user-streak i,
+.user-streak svg {
+  width: 14px;
+  height: 14px;
+  color: var(--accent);
+}
+
+.user-streak span {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--accent);
+  font-size: 1rem;
 }
 
 .metric-profile .progress-bar {
+  margin-top: 6px;
   width: 100%;
-  height: 8px;
-  background: var(--bg);
-  border-radius: 10px;
-  overflow: hidden;
 }
 
-.metric-profile .progress-fill {
-  height: 100%;
-  background: var(--accent);
-  border-radius: 10px;
-  transition: width 0.4s;
-}
-
+/* ---------- Stats (3 big cards) ----------
+   stat-value dropped from 2.5rem → 2rem so the panel h1 (up to 3rem)
+   clearly owns the top of the hierarchy. Video 2, Mistake 7. */
 .metric-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  gap: var(--space-sm);
 }
 
 .stat-item {
-  background: var(--surface);
-  border-radius: var(--radius-sm);
-  padding: 20px;
-  text-align: center;
+  background: var(--ink-soft);
+  border: 1px solid var(--ink-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
   display: flex;
   flex-direction: column;
   justify-content: center;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
 }
 
 .stat-value {
-  font-size: 1.8rem;
+  font-family: var(--font-mono);
   font-weight: 700;
-  color: #fff;
-  font-family: var(--mono);
+  font-size: 2rem;
+  color: var(--paper);
+  letter-spacing: -0.04em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .stat-label {
-  font-size: 0.75rem;
-  color: var(--text2);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-top: 5px;
-  font-family: var(--mono);
+  letter-spacing: 0.15em;
+  color: var(--paper-mute);
 }
 
+/* ---------- Middle row: mini stats ---------- */
 .metric-middle-row {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
+  grid-template-columns: 4fr 2fr;
+  gap: var(--space-md);
   align-items: stretch;
 }
 
 .metric-card-horizontal {
-  background: var(--surface);
-  border-radius: var(--radius-sm);
-  padding: 20px;
   display: grid;
-  gap: 10px;
+  gap: var(--space-sm);
+  align-items: center;
+  padding: var(--space-md);
+  background: var(--ink-soft);
+  border: 1px solid var(--ink-border);
+  border-radius: var(--radius-md);
 }
 
 .metric-card-horizontal:first-child {
@@ -138,50 +169,53 @@
 .metric-horizontal-item {
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   text-align: center;
+  gap: 4px;
 }
 
 .metric-horizontal-label {
+  font-family: var(--font-body);
+  font-weight: 600;
   font-size: 0.7rem;
-  color: var(--text2);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 4px;
-  font-family: var(--mono);
+  letter-spacing: 0.15em;
+  color: var(--paper-mute);
 }
 
+/* Sub-hierarchy: mini values must stay below stat-value (2rem). */
 .metric-horizontal-value {
-  font-size: 1.8rem;
+  font-family: var(--font-mono);
   font-weight: 700;
-  color: #fff;
-  font-family: var(--mono);
-  line-height: 1.2;
+  font-size: 1.4rem;
+  color: var(--paper);
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
 }
 
-/* ========== HEATMAP ========== */
+/* ---------- Heatmap ---------- */
 .heatmap-card {
-  padding: 20px;
-  background: var(--surface);
+  padding: var(--space-md);
 }
 
 .heatmap-container {
   display: grid;
   grid-auto-flow: column;
-  grid-template-rows: repeat(7, 12px);
+  grid-template-rows: repeat(7, 10px);
   gap: 3px;
-  margin-top: 10px;
+  margin-top: var(--space-sm);
   overflow-x: auto;
-  padding-bottom: 5px;
+  padding-bottom: var(--space-xs);
 }
 
 .heatmap-day {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   border-radius: 2px;
-  background: var(--bg);
-  transition: transform 0.15s;
+  background: var(--ink);
+  transition: transform 150ms ease-out;
   cursor: pointer;
 }
 
@@ -189,80 +223,334 @@
   transform: scale(1.4);
 }
 
-.heatmap-day[data-level="0"] { background: var(--bg); }
-.heatmap-day[data-level="1"] { background: #5c343b; }
-.heatmap-day[data-level="2"] { background: #8b3a45; }
-.heatmap-day[data-level="3"] { background: #ca4754; }
-.heatmap-day[data-level="4"] { background: #e06c78; }
+.heatmap-day[data-level="0"] { background: var(--ink); }
+.heatmap-day[data-level="1"] { background: rgba(146, 20, 12, 0.20); }
+.heatmap-day[data-level="2"] { background: rgba(146, 20, 12, 0.40); }
+.heatmap-day[data-level="3"] { background: rgba(146, 20, 12, 0.65); }
+.heatmap-day[data-level="4"] { background: var(--accent); }
 
-/* ========== CHARTS ========== */
+/* Optional: mark a "perfect" day in olive */
+.heatmap-day.ok {
+  background: var(--ok);
+}
+
+/* ---------- Chart cards ---------- */
 .chart-card {
-  background: var(--bg);
-  border: none;
-  padding: 20px;
+  padding: var(--space-md);
+  background: var(--ink-soft);
+  border: 1px solid var(--ink-border);
+  border-radius: var(--radius-md);
 }
 
-.chart-filters {
+/* h3 style inherited from `.card h3` in componentes.css.
+   No duplicate rule needed here. */
+
+/* ============================================================
+   COMPARISON
+   ============================================================ */
+#panelComparison .metric-dashboard {
+  gap: var(--space-md);
+}
+
+#panelComparison .card {
+  padding: var(--space-md);
+}
+
+#comparisonToday,
+#comparisonDay,
+#comparisonWeekSummary {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--paper-soft);
+}
+
+#comparisonToday table,
+#comparisonDay table,
+#comparisonWeekSummary table {
+  margin-top: var(--space-sm);
+  font-size: 0.85rem;
+}
+
+#comparisonToday strong,
+#comparisonDay strong,
+#comparisonWeekSummary strong {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--paper-mute);
+  display: block;
+  margin-bottom: 2px;
+}
+
+#comparisonToday div > div,
+#comparisonDay div > div {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--paper);
+  letter-spacing: -0.02em;
+}
+
+/* ============================================================
+   GOALS
+   ============================================================ */
+#panelGoals.active {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+}
+
+#panelGoals .panel-header {
+  grid-column: 1 / -1;
+}
+
+#panelGoals .card {
+  padding: var(--space-md);
+}
+
+#activeGoalDays {
   display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 6px;
   flex-wrap: wrap;
+  margin-bottom: var(--space-md);
 }
 
-.chart-filter-btn {
-  padding: 6px 16px;
-  background: var(--surface);
-  border: 1px solid var(--border);
+#activeGoalDays .toggle-btn {
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: var(--ink-soft);
+  border: 1px solid var(--ink-border);
+  color: var(--paper-mute);
   border-radius: var(--radius-sm);
-  color: var(--text);
-  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+#activeGoalDays .toggle-btn:hover {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--paper-mute);
+}
+
+#activeGoalDays .toggle-btn.active {
+  background: var(--accent);
+  color: var(--paper);
+  border-color: var(--accent);
+}
+
+#dailyProgressBar,
+#weeklyProgressBar {
+  margin: var(--space-xs) 0 var(--space-sm);
+}
+
+#panelGoals .card > div + div {
+  margin-top: var(--space-xs);
+}
+
+#panelGoals .card strong {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--paper-mute);
+  margin-right: 6px;
+}
+
+#dailyProgress,
+#weeklyProgress {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--paper);
+}
+
+/* ============================================================
+   SLEEP
+   Grid areas use the semantic class names from index.html:
+   .sleep-log, .sleep-history, .sleep-evolution.
+   ============================================================ */
+#panelSleep.active {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+  grid-template-areas:
+    "header    header"
+    "log       history"
+    "evolution evolution";
+}
+
+#panelSleep .panel-header  { grid-area: header; }
+#panelSleep .sleep-log     { grid-area: log; }
+#panelSleep .sleep-history { grid-area: history; }
+#panelSleep .sleep-evolution { grid-area: evolution; }
+
+#panelSleep .card {
+  padding: var(--space-md);
+}
+
+#calculatedHours {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 1.3rem;
+  color: var(--accent);
+  display: inline-block;
+  margin-top: 6px;
+}
+
+#sleepHistoryTable {
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+#sleepHistoryTable table {
   font-size: 0.8rem;
-  font-family: var(--font);
-  transition: background 0.2s, color 0.2s, border-color 0.2s;
 }
 
-.chart-filter-btn:hover {
-  background: rgba(202, 71, 84, 0.2);
+#sleepHistoryTable td {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  padding: 8px 10px;
 }
 
-.chart-filter-btn.active {
-  background: var(--accent);
-  color: var(--bg);
-  border-color: var(--accent);
+/* ============================================================
+   HISTORY
+   ============================================================ */
+#panelHistory .card {
+  padding: var(--space-md);
 }
 
-.chart-toggle-btn {
-  padding: 4px 12px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  color: var(--text);
-  cursor: pointer;
-  font-size: 0.75rem;
-  font-family: var(--font);
-  transition: background 0.2s, color 0.2s, border-color 0.2s;
+#historyContainer > .history-date {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.2rem;
+  color: var(--paper);
+  margin: var(--space-md) 0 var(--space-xs);
+  padding-bottom: var(--space-xs);
+  border-bottom: 1px solid var(--ink-border);
+  letter-spacing: -0.01em;
 }
 
-.chart-toggle-btn:hover {
-  background: rgba(202, 71, 84, 0.2);
+#historyContainer > .history-date:first-child {
+  margin-top: 0;
 }
 
-.chart-toggle-btn.active {
-  background: var(--accent);
-  color: var(--bg);
-  border-color: var(--accent);
+#historyContainer button.small {
+  margin-top: var(--space-md);
+  border-color: var(--paper-mute);
+  color: var(--paper);
 }
 
-.chart-wrapper {
-  position: relative;
-  width: 100%;
-  height: 300px;
-  margin-bottom: 8px;
+/* ============================================================
+   CONJECTURES
+   ============================================================ */
+#panelConjectures .card {
+  padding: var(--space-md);
 }
 
-.chart-toggles {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
+#conjecturesListFull table {
+  font-size: 0.85rem;
+}
+
+#conjecturesListFull td {
+  padding: 10px 12px;
+  font-size: 0.82rem;
+  color: var(--paper-soft);
+}
+
+#conjecturesListFull td:first-child {
+  color: var(--paper);
+  font-family: var(--font-body);
+}
+
+#conjecturesListFull td:nth-child(n + 2) {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+
+/* ============================================================
+   NOTES
+   ============================================================ */
+#panelNotes .card {
+  padding: var(--space-md);
+}
+
+#notesList {
+  margin-top: var(--space-md);
+}
+
+#notesList table {
+  font-size: 0.85rem;
+}
+
+#notesList td {
+  padding: 10px 12px;
+  color: var(--paper-soft);
+}
+
+#notesList td:nth-child(1),
+#notesList td:nth-child(3),
+#notesList td:nth-child(4) {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+
+#notesList td:last-child {
+  color: var(--paper);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+}
+
+/* ============================================================
+   CHECKLIST
+   ============================================================ */
+#panelChecklist .card {
+  padding: var(--space-md);
+}
+
+#checklistPercent {
+  font-family: var(--font-mono);
+  font-size: 0.8rem !important;
+  color: var(--paper-mute) !important;
+  margin: var(--space-xs) 0 var(--space-md);
+  letter-spacing: 0;
+}
+
+#checklistContainer label {
+  font-size: 0.92rem;
+}
+
+/* ============================================================
+   RESPONSIVE AJUSTES INTERNOS DEL DASHBOARD
+   (el breakpoint principal lo maneja responsive.css)
+   ============================================================ */
+@media (max-width: 1000px) {
+  .metric-top-row {
+    grid-template-columns: 1fr;
+  }
+  .metric-middle-row {
+    grid-template-columns: 1fr;
+  }
+  .metric-card-horizontal:first-child,
+  .metric-card-horizontal:last-child {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  #panelGoals.active,
+  #panelSleep.active {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "header"
+      "log"
+      "history"
+      "evolution";
+  }
 }

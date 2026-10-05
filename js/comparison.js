@@ -3,6 +3,31 @@ import { todayLocal, formatDate, formatHMS, escapeHtml } from './utils.js';
 
 let comparisonChart = null;
 
+// ===================== COLOR HELPERS =====================
+/**
+ * Reads the design system colors from CSS custom properties so charts
+ * follow the active theme. Called at the start of every render.
+ * Mirrors the helper in `charts.js` — kept local to avoid a cross-import
+ * that would pull the whole charts module into comparison.js.
+ */
+function getChartColors() {
+  const root = getComputedStyle(document.documentElement);
+  const get = (v) => root.getPropertyValue(v).trim();
+
+  return {
+    accent:      get('--accent')      || '#92140C',
+    accentSoft:  get('--accent-soft') || 'rgba(146,20,12,0.12)',
+    ok:          get('--ok')          || '#6E9075',
+    pending:     get('--pending')     || '#6D72C3',
+    paper:       get('--paper')       || '#FFF8F0',
+    paperSoft:   get('--paper-soft')  || 'rgba(255,248,240,0.7)',
+    paperMute:   get('--paper-mute')  || 'rgba(255,248,240,0.45)',
+    ink:         get('--ink')         || '#1E1E24',
+    inkSoft:     get('--ink-soft')    || '#26262D',
+    inkBorder:   get('--ink-border')  || 'rgba(255,248,240,0.08)'
+  };
+}
+
 // ===================== RESIZE HOOK (used by panels.js) =====================
 export function resizeComparisonChart() {
   if (comparisonChart) comparisonChart.resize();
@@ -163,6 +188,8 @@ async function renderComparisonChart(dataset, selectedDate, subjectFilter) {
   const ctx = document.getElementById('comparisonChartDay')?.getContext('2d');
   if (!ctx) return;
 
+  const C = getChartColors();
+
   const dates = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date(selectedDate + 'T00:00:00');
@@ -184,6 +211,19 @@ async function renderComparisonChart(dataset, selectedDate, subjectFilter) {
     comparisonChart.data.labels = labels;
     comparisonChart.data.datasets[0].data = hours;
     comparisonChart.data.datasets[1].data = exercises;
+    comparisonChart.data.datasets[0].backgroundColor = C.accent;
+    comparisonChart.data.datasets[0].borderColor = C.accent;
+    comparisonChart.data.datasets[1].backgroundColor = C.pending;
+    comparisonChart.data.datasets[1].borderColor = C.pending;
+    comparisonChart.options.scales.x.ticks.color = C.paperMute;
+    comparisonChart.options.scales.y.ticks.color = C.paperMute;
+    comparisonChart.options.scales.x.grid.color = C.inkBorder;
+    comparisonChart.options.scales.y.grid.color = C.inkBorder;
+    comparisonChart.options.plugins.tooltip.backgroundColor = C.inkSoft;
+    comparisonChart.options.plugins.tooltip.titleColor = C.paper;
+    comparisonChart.options.plugins.tooltip.bodyColor = C.paperSoft;
+    comparisonChart.options.plugins.tooltip.borderColor = C.inkBorder;
+    comparisonChart.options.plugins.legend.labels.color = C.paperSoft;
     comparisonChart.update();
     return;
   }
@@ -196,18 +236,18 @@ async function renderComparisonChart(dataset, selectedDate, subjectFilter) {
         {
           label: 'Hours',
           data: hours,
-          backgroundColor: '#ca4754',
-          hoverBackgroundColor: '#e06c78',
-          borderColor: '#ca4754',
+          backgroundColor: C.accent,
+          hoverBackgroundColor: C.accent, // hover handled by opacity via CSS-like easing
+          borderColor: C.accent,
           borderWidth: 1,
           borderRadius: 2
         },
         {
           label: 'Exercises',
           data: exercises,
-          backgroundColor: '#3dd6c8',
-          hoverBackgroundColor: '#5fe0d4',
-          borderColor: '#3dd6c8',
+          backgroundColor: C.pending,
+          hoverBackgroundColor: C.pending,
+          borderColor: C.pending,
           borderWidth: 1,
           borderRadius: 2
         }
@@ -219,25 +259,32 @@ async function renderComparisonChart(dataset, selectedDate, subjectFilter) {
       animation: false,
       plugins: {
         tooltip: {
-          backgroundColor: '#2c2e31',
-          titleColor: '#d1d0c5',
-          bodyColor: '#d1d0c5',
-          borderColor: '#646669',
-          borderWidth: 1
+          backgroundColor: C.inkSoft,
+          titleColor: C.paper,
+          bodyColor: C.paperSoft,
+          borderColor: C.inkBorder,
+          borderWidth: 1,
+          padding: 10
         },
         legend: {
           display: true,
-          labels: { color: '#d1d0c5' }
+          labels: {
+            color: C.paperSoft,
+            font: { family: 'Inter', size: 11 },
+            boxWidth: 10,
+            boxHeight: 10,
+            usePointStyle: true
+          }
         }
       },
       scales: {
         x: {
-          ticks: { color: '#646669' },
-          grid: { color: 'rgba(100,102,105,0.2)', borderDash: [2, 2] }
+          ticks: { color: C.paperMute, font: { family: 'JetBrains Mono', size: 11 } },
+          grid: { color: C.inkBorder, borderDash: [2, 2], drawBorder: false }
         },
         y: {
-          ticks: { color: '#646669' },
-          grid: { color: 'rgba(100,102,105,0.2)', borderDash: [2, 2] }
+          ticks: { color: C.paperMute, font: { family: 'JetBrains Mono', size: 11 } },
+          grid: { color: C.inkBorder, borderDash: [2, 2], drawBorder: false }
         }
       }
     }
@@ -336,3 +383,13 @@ export async function refreshComparison() {
   await renderSelectedDay(dataset);
   await renderWeek(dataset);
 }
+
+// ===================== THEME REACTIVITY =====================
+// Re-render the bar chart if the theme changes.
+window.addEventListener('sq-theme-changed', async () => {
+  const dateInput = document.getElementById('comparisonDate');
+  if (!dateInput || !dateInput.value) return;
+  const dataset = await loadDataset();
+  const filter = document.getElementById('comparisonSubject').value;
+  await renderComparisonChart(dataset, dateInput.value, filter);
+}); 

@@ -1,233 +1,453 @@
-/* ========== MOBILE RESPONSIVE ========== */
+/* ============================================================
+   Studyquantifier — Responsive
+   Desktop >1200px | Tablet 1000-1200px | Mobile <768px | Small <480px
+   Dark mode only.
+   ============================================================ */
+
+/* ============================================================
+   DESKTOP (default) — hide mobile-only elements
+   ============================================================ */
+.mobile-hamburger {
+  display: none;
+}
+
+#sidebar-backdrop {
+  display: none;
+}
+
+/* ============================================================
+   TABLET & MOBILE (<1200px)
+   Sidebar becomes off-canvas drawer.
+   ============================================================ */
+@media (max-width: 1200px) {
+
+  /* ---------- SIDEBAR → DRAWER ---------- */
+  #sidebar {
+    position: fixed;
+    top: 0;
+    left: -100%;
+    height: 100vh;
+    height: 100dvh;
+    width: 280px;
+    z-index: 200;
+    transition: left 300ms ease-out;
+    box-shadow: 8px 0 32px rgba(0, 0, 0, 0.4);
+    padding-top: var(--space-sm);
+  }
+
+  #sidebar.open {
+    left: 0;
+  }
+
+  /* Close button (inside sidebar-header) */
+  .sidebar-close {
+    position: absolute;
+    top: var(--space-md);
+    right: var(--space-md);
+    width: 32px;
+    height: 32px;
+    min-height: 32px;
+    padding: 0;
+    background: transparent;
+    border: 1px solid var(--ink-border);
+    color: var(--paper-soft);
+    border-radius: var(--radius-sm);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sidebar-close:hover {
+    background: var(--ink-soft);
+    color: var(--paper);
+  }
+
+  /* ---------- BACKDROP ---------- */
+  #sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(30, 30, 36, 0.75);
+    z-index: 199;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 250ms ease-out;
+  }
+
+  #sidebar-backdrop.open {
+    display: block;
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* ---------- HAMBURGER ---------- */
+  .mobile-hamburger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    min-height: 36px;
+    padding: 0;
+    background: transparent;
+    border: 1px solid var(--ink-border);
+    color: var(--paper);
+    border-radius: var(--radius-sm);
+    margin-right: auto;
+  }
+
+  .mobile-hamburger:hover {
+    background: var(--ink-soft);
+    border-color: var(--paper-mute);
+  }
+
+  .mobile-hamburger i,
+  .mobile-hamburger svg {
+    width: 18px;
+    height: 18px;
+    stroke-width: 1.5;
+  }
+
+  /* ---------- TOPBAR adjust ---------- */
+  #topbar {
+    justify-content: space-between;
+  }
+
+  .mini-topbar-actions {
+    margin-left: auto;
+  }
+
+  /* ---------- METRIC TOP ROW compresses ---------- */
+  .metric-top-row {
+    grid-template-columns: 1fr;
+  }
+
+  .metric-middle-row {
+    grid-template-columns: 1fr;
+  }
+
+  /* ---------- GOALS + SLEEP go single column ---------- */
+  #panelGoals.active,
+  #panelSleep.active {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================
+   MOBILE (<768px)
+   ============================================================ */
 @media (max-width: 768px) {
 
-  /* ===== TOP BAR ===== */
+  /* ---------- MINI TOPBAR: only hamburger + icons hidden ---------- */
   #topbar {
-    flex-wrap: wrap;
-    height: auto;
-    padding: 10px;
+    padding: 0 var(--space-sm);
   }
-  .tab-nav {
-    order: 3;
+
+  .mini-topbar-actions {
+    display: none !important;
+  }
+
+  /* ---------- CONTENT AREA takes full width ---------- */
+  .content-area {
     width: 100%;
-    justify-content: flex-start;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    gap: 6px;
-    padding-bottom: 4px;
-    scrollbar-width: thin;
-    white-space: nowrap;
-  }
-  .tab-btn {
-    flex-shrink: 0;
   }
 
-  /* ===== CONFIG IN A SINGLE COLUMN ===== */
-  .grid-2 {
-    grid-template-columns: 1fr !important;
+  /* ---------- PANELS: reduce outer padding ---------- */
+  .panel {
+    padding: var(--space-md) var(--space-sm);
   }
 
-  select,
-  input,
-  textarea {
-    width: 100% !important;
-    max-width: 100%;
-  }
-
-  /* ===== ADD SUBJECT/SUBTOPIC ROWS ===== */
-  #addSubjectRow,
-  #addSubtopicRow {
-    flex-direction: column;
-    gap: 10px;
-    margin-top: 10px !important;
-  }
-  #addSubjectRow input,
-  #addSubtopicRow input,
-  #addSubjectRow button,
-  #addSubtopicRow button {
-    width: 100% !important;
-  }
-
-  /* ===== IDLE VIEW CARDS ===== */
+  /* ---------- SESSION: IDLE VIEW → 1 column ---------- */
   #idle-view {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 20px;
-    margin-top: 20px;
-    padding: 0 16px;
+    grid-template-columns: 1fr;
+    padding: var(--space-md) var(--space-sm);
+    gap: var(--space-md);
   }
+
   .config-card,
   .pomo-card {
-    max-width: 100% !important;
-    width: 100%;
+    grid-column: 1 / -1;
   }
 
-  /* ===== ACTIVE VIEW ===== */
+  /* ---------- POMODORO circle smaller ---------- */
+  .pomo-circle {
+    width: 180px;
+    height: 180px;
+    font-size: 2.4rem;
+  }
+
+  /* ---------- SESSION: ACTIVE VIEW → column ---------- */
   #active-view.active {
     flex-direction: column;
-    width: 100%;
-    overflow-y: auto;
-  }
-  #left-panel {
-    width: 100%;
-    max-height: 200px;
-    margin: 10px 0;
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-  }
-  #central-zone {
-    padding-top: 70px;
-  }
-  #problema-config {
-    gap: 10px;
-  }
-  #problema-config > div {
-    width: 100%;
-  }
-  #problema-config input,
-  #problema-config select {
-    width: 100% !important;
+    padding: var(--space-md) var(--space-sm);
+    gap: var(--space-md);
   }
 
-  /* ===== TIMER ===== */
-  .timer-display {
-    font-size: 4rem;
+  #left-panel {
+    width: 100%;
+    max-height: 280px;
+    position: static;
   }
+
+  #central-zone {
+    width: 100%;
+    gap: var(--space-sm);
+  }
+
+  #problema-config {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  #problema-config > div {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  /* ---------- TIMER: focus mode still huge but slightly smaller ---------- */
   #active-view.timer-running .timer-display {
-    font-size: 6rem;
+    font-size: clamp(4rem, 20vw, 10rem);
   }
+
+  #active-view.timer-running #central-zone {
+    gap: var(--space-lg);
+    padding: 0 var(--space-sm);
+  }
+
+  #active-view.timer-running .conjecture-line {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-xs);
+    padding: 0 var(--space-md);
+  }
+
+  #active-view.timer-running .conjecture-line input {
+    width: 100%;
+  }
+
+  /* ---------- POMO-FLOAT: full-width bar at top ---------- */
   #pomo-float {
+    left: var(--space-sm);
+    right: var(--space-sm);
+    transform: none;
+    width: auto;
     padding: 6px 10px;
-    gap: 6px;
+    gap: 4px;
+  }
+
+  #pomo-float .timer {
+    font-size: 1rem;
+    margin-right: 4px;
+  }
+
+  #pomo-float button {
+    width: 30px;
+    height: 30px;
+    min-height: 30px;
+  }
+
+  #pomo-float #btnReadingToggleFloat {
+    padding: 0 6px;
     font-size: 0.7rem;
   }
 
-  /* ===== COMPACT METRICS ===== */
-  .metric-top-row {
-    grid-template-columns: 1fr;
-    gap: 12px;
+  /* ---------- READING FLOAT ---------- */
+  #reading-float {
+    right: var(--space-sm);
   }
-  .metric-profile {
-    flex-direction: column;
-    text-align: center;
-    padding: 15px;
-  }
+
+  /* ---------- METRICS ---------- */
   .metric-stats {
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-  }
-  .stat-item {
-    padding: 12px 8px;
-    min-height: 0;
-  }
-  .stat-value {
-    font-size: 1.4rem;
-  }
-  .metric-middle-row {
     grid-template-columns: 1fr;
-    gap: 10px;
   }
-  .metric-card-horizontal {
-    padding: 12px;
-    gap: 6px;
-  }
+
   .metric-card-horizontal:first-child,
   .metric-card-horizontal:last-child {
     grid-template-columns: 1fr 1fr;
   }
+
+  .stat-value,
   .metric-horizontal-value {
-    font-size: 1.4rem;
+    font-size: 1.6rem;
   }
+
   .avatar {
-    margin-bottom: 10px;
+    width: 40px;
+    height: 40px;
+    font-size: 0.95rem;
   }
 
-  /* ===== METRICS OVERFLOW FIX ===== */
-  #panelMetrics.active {
-    width: 100%;
-    overflow-x: hidden;
-    overflow-y: auto;
-    padding: 0 12px;
-  }
-
-  .metric-dashboard {
-    display: block;
-    width: 100%;
-    max-width: 100%;
-    gap: 0;
-    margin: 0;
-  }
-
-  .metric-top-row,
-  .metric-middle-row {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    width: 100%;
-    max-width: 100%;
-  }
-
-  .metric-profile {
-    width: 100%;
-    flex-direction: column;
-    text-align: center;
-    padding: 15px;
-  }
-
-  .metric-stats {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    width: 100%;
-    max-width: 100%;
-  }
-
-  .metric-card-horizontal {
-    width: 100%;
-    max-width: 100%;
-    padding: 12px;
-  }
-
-  .chart-card,
-  .heatmap-card {
-    width: 100%;
-    max-width: 100%;
-    padding: 15px;
-    box-sizing: border-box;
-  }
-
-  /* Fixed height to prevent collapse */
-  .chart-wrapper,
-  .chart-container {
-    width: 100%;
-    max-width: 100%;
-    height: 250px !important;
-    min-height: 250px;
-    overflow: hidden;
-    position: relative;
-  }
-
-  .chart-filters {
-    width: 100%;
-    max-width: 100%;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
+  /* ---------- HEATMAP smaller cells ---------- */
   .heatmap-container {
-    width: 100%;
-    max-width: 100%;
+    grid-template-rows: repeat(7, 9px);
+    gap: 2px;
+  }
+
+  .heatmap-day {
+    width: 9px;
+    height: 9px;
+  }
+
+  /* ---------- CHARTS: fixed height ---------- */
+  .chart-wrapper {
+    height: 240px;
+  }
+
+  .chart-container {
+    height: 220px;
+  }
+
+  /* ---------- TABLES: allow horizontal scroll ---------- */
+  .table-wrap,
+  #conjecturesListFull,
+  #notesList,
+  #historyContainer {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
 
-  /* Force canvases to keep their height */
-  #panelMetrics canvas,
-  #panelMetrics .chart-wrapper canvas,
-  #panelMetrics .chart-container canvas {
+  /* ---------- CARD RESULT: full width ---------- */
+  #cardResult,
+  #session-conjectures-wrap {
     max-width: 100%;
-    height: 250px !important;
-    min-height: 250px;
-    display: block;
+  }
+
+  /* ---------- GOALS: days wrap nicely ---------- */
+  #activeGoalDays {
+    gap: 4px;
+  }
+
+  #activeGoalDays .toggle-btn {
+    width: 36px;
+    height: 36px;
+    min-height: 36px;
+  }
+
+  /* ---------- MODAL ---------- */
+  .modal {
+    padding: var(--space-md);
+    max-width: 100%;
+  }
+
+  /* ---------- TOAST ---------- */
+  .toast {
+    bottom: var(--space-sm);
+    left: var(--space-sm);
+    right: var(--space-sm);
+    transform: translateY(20px);
+    max-width: none;
+  }
+
+  .toast.show {
+    transform: translateY(0);
+  }
+
+  /* ---------- SIDEBAR fills more on very narrow screens ---------- */
+  #sidebar {
+    width: 260px;
+  }
+}
+
+/* ============================================================
+   SMALL PHONES (<480px)
+   ============================================================ */
+@media (max-width: 480px) {
+
+  :root {
+    --grid-margin: 12px;
+    --space-md: 16px;
+    --space-lg: 24px;
+  }
+
+  body {
+    font-size: 0.9rem;
+  }
+
+  h1 {
+    font-size: 1.75rem;
+  }
+
+  .stat-value {
+    font-size: 1.4rem;
+  }
+
+  .metric-horizontal-value {
+    font-size: 1.3rem;
+  }
+
+  /* Two-column grid collapses */
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  /* Buttons full-width in stacks */
+  .btn-row > button {
+    flex: 1;
+  }
+
+  /* SIDEBAR closer to full width */
+  #sidebar {
+    width: 100%;
+    max-width: 320px;
+  }
+
+  /* Timer even more aggressive on tiny screens */
+  #active-view.timer-running .timer-display {
+    font-size: clamp(3rem, 20vw, 6rem);
+  }
+
+  /* Conjecture block tighter */
+  #active-view.timer-running #central-zone {
+    gap: var(--space-md);
+    padding: 0 var(--space-sm);
+  }
+
+  /* Chart heights shrink */
+  .chart-wrapper {
+    height: 200px;
+  }
+
+  .chart-container {
+    height: 180px;
+  }
+
+  /* Pomo circle smaller */
+  .pomo-circle {
+    width: 160px;
+    height: 160px;
+    font-size: 2.2rem;
+  }
+}
+
+/* ============================================================
+   LANDSCAPE ORIENTATION on short viewports (phones rotated)
+   ============================================================ */
+@media (max-height: 500px) and (orientation: landscape) {
+
+  /* Timer State B shouldn't overflow vertically */
+  #active-view.timer-running #central-zone {
+    gap: var(--space-md);
+    padding-top: var(--space-sm);
+  }
+
+  #active-view.timer-running .timer-display {
+    font-size: clamp(2.5rem, 12vw, 6rem);
+  }
+
+  .pomo-circle {
+    width: 140px;
+    height: 140px;
+    font-size: 2rem;
+  }
+}
+
+/* ============================================================
+   PREFERS-REDUCED-MOTION — kill drawer/backdrop transitions
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  #sidebar {
+    transition: none !important;
+  }
+  #sidebar-backdrop {
+    transition: none !important;
   }
 }

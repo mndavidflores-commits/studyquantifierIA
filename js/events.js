@@ -20,18 +20,86 @@ import { refreshComparison } from './comparison.js';
 import { updateAuthUI } from './auth.js';
 
 export function initEvents() {
-  // ===================== NAVIGATION =====================
+  // ===================== MOBILE DRAWER =====================
+  const sidebar = document.getElementById('sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
+  const btnMenu = document.getElementById('btnMobileMenu');
+  const btnClose = document.getElementById('btnSidebarClose');
+
+  function openDrawer() {
+    if (!sidebar || !backdrop) return;
+    sidebar.classList.add('open');
+    backdrop.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeDrawer() {
+    if (!sidebar || !backdrop) return;
+    sidebar.classList.remove('open');
+    backdrop.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  if (btnMenu) btnMenu.addEventListener('click', openDrawer);
+  if (btnClose) btnClose.addEventListener('click', closeDrawer);
+  if (backdrop) backdrop.addEventListener('click', closeDrawer);
+
+  // Close drawer on Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeDrawer();
+  });
+
+  // ===================== NAVIGATION (sidebar) =====================
   const tabNav = document.getElementById('tabNav');
   if (tabNav) {
     tabNav.addEventListener('click', e => {
-      if (!e.target.classList.contains('tab-btn')) return;
+      const btn = e.target.closest('.tab-btn');
+      if (!btn) return;
+
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      e.target.classList.add('active');
+      btn.classList.add('active');
+
       document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-      const target = document.getElementById(e.target.dataset.panel);
+      const target = document.getElementById(btn.dataset.panel);
       if (target) target.classList.add('active');
+
       refreshActivePanels();
+
+      // On mobile, close the drawer after picking a section.
+      if (window.matchMedia('(max-width: 1200px)').matches) {
+        closeDrawer();
+      }
     });
+  }
+
+  // ===================== THEME TOGGLE =====================
+  const THEME_KEY = 'sq-theme';
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+
+    const btn = document.getElementById('btnThemeToggle');
+    if (btn) {
+      btn.innerHTML = `<i data-lucide="${theme === 'dark' ? 'moon' : 'sun'}" aria-hidden="true"></i>`;
+      if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons();
+      }
+    }
+  }
+
+  const btnThemeToggle = document.getElementById('btnThemeToggle');
+  if (btnThemeToggle) {
+    btnThemeToggle.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme') || 'dark';
+      const next = current === 'dark' ? 'light' : 'dark';
+      localStorage.setItem(THEME_KEY, next);
+      applyTheme(next);
+
+      window.dispatchEvent(new CustomEvent('sq-theme-changed', { detail: { theme: next } }));
+    });
+
+    const persisted = localStorage.getItem(THEME_KEY) || 'dark';
+    applyTheme(persisted);
   }
 
   // ===================== AUTH =====================
@@ -43,6 +111,7 @@ export function initEvents() {
     });
   });
 
+  // NOTE: Guest mode removed in R1 (owner-only app). Safe no-op.
   const btnGuest = document.getElementById('btn-guest');
   if (btnGuest) btnGuest.addEventListener('click', () => {
     localStorage.setItem('studyquantifier_guest', 'true');
@@ -232,6 +301,30 @@ export function initEvents() {
   const btnDistractFloat = document.getElementById('btnDistractFloat');
   if (btnDistractFloat) btnDistractFloat.addEventListener('click', logDistraction);
 
+  function setReadingIcon(iconName) {
+    ['readingIconFloat', 'readingIconFloatB'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const newIcon = document.createElement('i');
+      newIcon.setAttribute('data-lucide', iconName);
+      newIcon.setAttribute('aria-hidden', 'true');
+      newIcon.id = id;
+      el.replaceWith(newIcon);
+    });
+    if (window.lucide && typeof window.lucide.createIcons === 'function') {
+      window.lucide.createIcons();
+    }
+  }
+
+  function updateReadingDisplays(display) {
+    const a = document.getElementById('readingTotal');
+    if (a) a.textContent = display;
+    const b = document.getElementById('readingTotalFloat');
+    if (b) b.textContent = display;
+    const c = document.getElementById('readingTotalFloatB');
+    if (c) c.textContent = display;
+  }
+
   function toggleReading() {
     if (!state.session.readingRunning) {
       if (state.session.state !== PomodoroState.FOCUS_RUNNING
@@ -244,20 +337,13 @@ export function initEvents() {
         state.session.readingSeconds = Math.round((Date.now() - start) / 1000);
         const m = Math.floor(state.session.readingSeconds / 60);
         const s = state.session.readingSeconds % 60;
-        const display = `${m}:${String(s).padStart(2, '0')}`;
-
-        const total = document.getElementById('readingTotal');
-        if (total) total.textContent = display;
-        const totalFloat = document.getElementById('readingTotalFloat');
-        if (totalFloat) totalFloat.textContent = display;
+        updateReadingDisplays(`${m}:${String(s).padStart(2, '0')}`);
       }, 1000);
 
-      const iconFloat = document.getElementById('readingIconFloat');
-      if (iconFloat) iconFloat.textContent = '⏹';
+      setReadingIcon('square');
     } else {
       stopReadingInterval();
-      const iconFloat = document.getElementById('readingIconFloat');
-      if (iconFloat) iconFloat.textContent = '▶';
+      setReadingIcon('play');
     }
   }
 
@@ -273,6 +359,9 @@ export function initEvents() {
 
   const btnReadingToggleFloat = document.getElementById('btnReadingToggleFloat');
   if (btnReadingToggleFloat) btnReadingToggleFloat.addEventListener('click', toggleReading);
+
+  const btnReadingToggleFloatB = document.getElementById('btnReadingToggleFloatB');
+  if (btnReadingToggleFloatB) btnReadingToggleFloatB.addEventListener('click', toggleReading);
 
   // ===================== ADD SUBJECT/SUBTOPIC/SECTION =====================
   const btnAddSubject = document.getElementById('btnAddSubject');
@@ -508,6 +597,28 @@ export function initEvents() {
     refreshActivePanels();
   });
 
+  // ===================== MOBILE ACTION MIRRORS =====================
+  // The 4 topbar buttons also live in the sidebar on mobile.
+  // Forward their clicks to the canonical buttons.
+  const mobileMirrors = [
+    ['btnExportMobile', 'btnExport'],
+    ['btnImportMobile', 'btnImport'],
+    ['btnLoadSyllabusMobile', 'btnLoadSyllabus'],
+    ['btnSyncNowMobile', 'btnSyncNow']
+  ];
+  mobileMirrors.forEach(([mobileId, targetId]) => {
+    const mobileBtn = document.getElementById(mobileId);
+    if (!mobileBtn) return;
+    mobileBtn.addEventListener('click', () => {
+      const target = document.getElementById(targetId);
+      if (target) target.click();
+      // Only auto-close the drawer for actions that don't open a file dialog
+      if (mobileId === 'btnSyncNowMobile' && window.matchMedia('(max-width: 1200px)').matches) {
+        closeDrawer();
+      }
+    });
+  });
+
   // ===================== COMPARISON PANEL =====================
   const comparisonDate = document.getElementById('comparisonDate');
   if (comparisonDate) comparisonDate.addEventListener('change', () => refreshComparison());
@@ -603,9 +714,7 @@ export function initEvents() {
     }
   });
 
-  // ===================== RECALL GROUP LIST (Mode B) — Anki-style =====================
-  // Click delegation on the scrollable list of groups. Each item has data-key.
-  // Ignores clicks on the placeholder ("disabled") items.
+  // ===================== RECALL GROUP LIST (Mode B) =====================
   const recallGroupList = document.getElementById('recallGroupList');
   if (recallGroupList) {
     recallGroupList.addEventListener('click', async (e) => {
@@ -616,7 +725,6 @@ export function initEvents() {
       const key = item.dataset.key;
       if (!key) return;
 
-      // Toggle: clicking the already-active group deselects it
       if (state.currentRecallGroup) {
         const activeKey = `${state.currentRecallGroup.subject}|${state.currentRecallGroup.book}|${state.currentRecallGroup.subtopicId}|${state.currentRecallGroup.section}`;
         if (activeKey === key) {
@@ -629,7 +737,6 @@ export function initEvents() {
       }
 
       await applyRecallGroup(key);
-      // Refresh the visual active state
       document.querySelectorAll('#recallGroupList .recall-group-item').forEach(el => el.classList.remove('active'));
       item.classList.add('active');
     });

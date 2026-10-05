@@ -1,5 +1,5 @@
 import { db, state } from './config.js';
-import { showToast } from './utils.js';
+import { showToast, escapeHtml } from './utils.js';
 import { syncAll } from './sync.js';
 import { refreshSleepChart } from './charts.js';
 
@@ -28,7 +28,7 @@ export async function refreshSleepHistory() {
   const records = await db.sleep.orderBy('date').reverse().limit(50).toArray();
 
   if (!records.length) {
-    wrap.innerHTML = '<p style="color:var(--text2);">No sleep records.</p>';
+    wrap.innerHTML = '<p style="color:var(--paper-mute);">No sleep records.</p>';
     return;
   }
 
@@ -40,6 +40,13 @@ export async function refreshSleepHistory() {
     return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
   }
 
+  function starsHtml(quality) {
+    const filled = Math.floor(quality);
+    const empty = 10 - filled;
+    return `<span style="color:var(--accent)">${'★'.repeat(filled)}</span>` +
+           `<span style="color:var(--paper-faint)">${'☆'.repeat(empty)}</span>`;
+  }
+
   let html = `<table>
     <thead>
       <tr><th>Date</th><th>Hours</th><th>Quality</th><th>Bedtime</th><th>Wake up</th><th></th></tr>
@@ -47,18 +54,26 @@ export async function refreshSleepHistory() {
     <tbody>`;
 
   records.forEach(r => {
-    const stars = '★'.repeat(Math.floor(r.quality)) + '☆'.repeat(10 - Math.floor(r.quality));
     html += `<tr>
-      <td>${r.date}</td>
+      <td>${escapeHtml(r.date)}</td>
       <td>${r.hours}h</td>
-      <td>${stars} ${r.quality}/10</td>
+      <td>${starsHtml(r.quality)} ${r.quality}/10</td>
       <td>${format12h(r.bedtime)}</td>
       <td>${format12h(r.wakeup)}</td>
-      <td><button class="small danger" data-delete-sleep="${r.id}">X</button></td>
+      <td>
+        <button class="icon-btn" data-delete-sleep="${r.id}" title="Delete" aria-label="Delete">
+          <i data-lucide="trash-2" aria-hidden="true"></i>
+        </button>
+      </td>
     </tr>`;
   });
   html += '</tbody></table>';
   wrap.innerHTML = html;
+
+  // Hydrate the newly-injected Lucide icons.
+  if (window.lucide && typeof window.lucide.createIcons === 'function') {
+    window.lucide.createIcons();
+  }
 
   wrap.querySelectorAll('[data-delete-sleep]').forEach(btn => {
     btn.addEventListener('click', async () => {
@@ -170,7 +185,7 @@ export async function refreshNotes() {
   });
 
   if (!filtered.length) {
-    wrap.innerHTML = '<p style="color:var(--text2);">No notes.</p>';
+    wrap.innerHTML = '<p style="color:var(--paper-mute);">No notes.</p>';
     return;
   }
 
@@ -186,17 +201,4 @@ export async function refreshNotes() {
   });
   html += '</table>';
   wrap.innerHTML = html;
-}
-
-// ===================== HTML ESCAPING (local helper) =====================
-// NOTE: eventualmente se consolidará en utils.js — otras copias viven en
-// comparison.js, conjectures.js y metrics.js.
-function escapeHtml(str) {
-  if (str == null) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }
