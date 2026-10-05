@@ -15,9 +15,9 @@ import {
 import { updateUIForMode, refreshSubtopicHistory } from './reviews.js';
 import { verifyAddSubject, verifyAddSubtopic, verifyAddSection } from './selectors.js';
 
-// NOTE: `stopBlindTimerAndShowResult` used to live in `timer.js`, which created
-// a circular dependency (timer → reviews → pomodoro → timer). It now lives in
-// `ui.js` alongside `stopBlindTimer` and `updateBlindDisplay`.
+// Tracks the state we were in before STOP was pressed, so we can
+// resume gracefully if the user clicks "Keep studying" in the modal.
+let stateBeforeEnding = null;
 
 // ===================== TRANSITION (STATE MACHINE) =====================
 export async function transition(newState) {
@@ -57,6 +57,7 @@ export async function transition(newState) {
     updatePomodoroModeButton();
     updatePomodoroDisplay();
     document.getElementById('pomoCircle').classList.remove('break');
+    document.getElementById('pomoCircle').classList.remove('running');
     setConfigEnabled(true);
     document.getElementById('pomoWork').disabled = false;
     document.getElementById('pomoBreak').disabled = false;
@@ -79,8 +80,6 @@ export async function transition(newState) {
     document.getElementById('pomo-float').classList.add('hidden');
     document.getElementById('left-panel').classList.add('hidden');
 
-    // Hide the "New subject / subtopic / section" rows — the user already
-    // selected valid values in the dropdowns before starting the session.
     verifyAddSubject();
     verifyAddSubtopic();
     verifyAddSection();
@@ -117,6 +116,10 @@ export async function transition(newState) {
     stopPomodoroInterval();
     state.session.pomoInterval = setInterval(onPomodoroTick, 1000);
 
+    // The circle pulses only when the pomodoro is actually running.
+    const circle = document.getElementById('pomoCircle');
+    if (circle) circle.classList.add('running');
+
     if ((prev === PomodoroState.FOCUS_PAUSED || prev === PomodoroState.BREAK_PAUSED) && state.blindTimer.wasRunning) {
       state.blindTimer.wasRunning = false;
       state.blindTimer.paused = false;
@@ -140,6 +143,9 @@ export async function transition(newState) {
     stopPomodoroInterval();
     stopReadingInterval();
 
+    const circle = document.getElementById('pomoCircle');
+    if (circle) circle.classList.remove('running');
+
     if (state.blindTimer.running) {
       state.blindTimer.running = false;
       state.blindTimer.wasRunning = true;
@@ -156,9 +162,16 @@ export async function transition(newState) {
 
   // ---------- SESSION_ENDING ----------
   if (newState === PomodoroState.SESSION_ENDING) {
+    // Remember where we came from so we can resume if the user
+    // pressed STOP by mistake and clicks "Keep studying".
+    stateBeforeEnding = prev;
+
     stopPomodoroInterval();
     stopReadingInterval();
     stopBlindTimer();
+
+    const circle = document.getElementById('pomoCircle');
+    if (circle) circle.classList.remove('running');
 
     state.blindTimer.seconds = 0;
     state.blindTimer.pendingResult = false;
@@ -178,10 +191,71 @@ export async function transition(newState) {
     updatePomodoroStatusText();
     updatePomodoroButtons();
 
-    await autoSaveSession();
+    // NOTE: We do NOT auto-save here. The save is deferred to
+    // finalizeSession(), which is called when the user clicks
+    // "Save session". If the user clicks "Keep studying", nothing
+    // is saved and the previous state is fully restored.
     await showSessionSummary();
     return;
   }
+}
+
+// ===================== FINALIZE / RESUME EXPORTS =====================
+
+/**
+ * Called when the user confirms the session should end.
+ * Creates the pomodoro record in the DB and migrates children
+ * from the temporary sessionId to the real one.
+ *
+ * @returns {Promise<string|null>} The real session id, or null if there was
+ *   nothing to save (e.g., user pressed STOP on an empty session).
+ */
+export async function finalizeSession() {
+  return await autoSaveSession();
+}
+
+/**
+ * Called when the user pressed STOP by mistake and clicked "Keep studying".
+ * Restores the previous state, restarts intervals, and re-enables the
+ * session-only UI (distraction button, reading, etc.).
+ */
+export function resumeSessionFromEnding() {
+  const target = stateBeforeEnding || PomodoroState.FOCUS_RUNNING;
+  stateBeforeEnding = null;
+
+  // If resuming into a running state, restart the tick interval.
+  // If the countdown had hit 0 (timer expired), reset it so the
+  // user gets a fresh pomodoro phase instead of instantly ending again.
+  if (target === PomodoroState.FOCUS_RUNNING || target === PomodoroState.BREAK_RUNNING) {
+    if (state.session.pomodoroMode === 'countdown' && state.session.remainingSeconds <= 0) {
+      const totalMinutes = target === PomodoroState.FOCUS_RUNNING
+        ? parseInt(document.getElementById('pomoWork').value, 10)
+        : parseInt(document.getElementById('pomoBreak').value, 10);
+      state.session.remainingSeconds = totalMinutes * 60;
+      state.session.elapsedTotal = 0;
+    }
+
+    state.session.pomoStartTime = Date.now() - state.session.elapsedTotal * 1000;
+    stopPomodoroInterval();
+    state.session.pomoInterval = setInterval(onPomodoroTick, 1000);
+
+    const circle = document.getElementById('pomoCircle');
+    if (circle) circle.classList.add('running');
+  }
+
+  state.session.state = target;
+
+  // Re-enable session-only controls.
+  document.getElementById('btnDistract').disabled = false;
+  document.getElementById('btnReadingStart').disabled = false;
+  document.getElementById('btnReadingStop').disabled = false;
+  document.getElementById('pomoWork').disabled = true;
+  document.getElementById('pomoBreak').disabled = true;
+  setConfigEnabled(false);
+
+  updatePomodoroStatusText();
+  updatePomodoroButtons();
+  updatePomodoroDisplay();
 }
 
 // ===================== NEW SESSION SETUP =====================
@@ -261,8 +335,6 @@ async function setupNewSession() {
 
 // ===================== TICK =====================
 function onPomodoroTick() {
-  // Defensive guard: if this tick fires after a pause/stop transition (race
-  // between setInterval and clearInterval), bail out before mutating state.
   if (state.session.state !== PomodoroState.FOCUS_RUNNING &&
       state.session.state !== PomodoroState.BREAK_RUNNING) {
     return;
@@ -364,9 +436,13 @@ async function autoSaveSession() {
 
 // ===================== SESSION SUMMARY MODAL =====================
 async function showSessionSummary() {
+  // Use the real ID if already saved, otherwise fall back to the temp
+  // id (which is what problems/conjectures use until finalizeSession()).
+  const sessionKey = state.session.savedSessionId || state.session.tempId;
+
   const problems = await db.sessions
     .where('type').equals('problem')
-    .and(s => s.sessionId === state.session.savedSessionId)
+    .and(s => s.sessionId === sessionKey)
     .toArray();
 
   const total = problems.length;
@@ -376,24 +452,49 @@ async function showSessionSummary() {
   const totalTime = problems.reduce((a, p) => a + (p.timeSeconds || 0), 0);
 
   const conjectures = await db.conjectures
-    .where('sessionId').equals(state.session.savedSessionId)
+    .where('sessionId').equals(sessionKey)
     .toArray();
 
   const focusSeconds = state.session.finalFocusSeconds || state.session.totalFocusSeconds;
+  const readingMins = Math.floor(state.session.readingSeconds / 60);
+  const readingSecs = state.session.readingSeconds % 60;
+  const readingDisplay = `${readingMins}:${String(readingSecs).padStart(2, '0')}`;
 
   document.getElementById('summaryContent').innerHTML = `
-    Focus time: ${formatTime(focusSeconds)}<br>
-    Problems: ${total} (✅${correct} ❌${incorrect} ⚪${unresolved})<br>
-    Reading time: ${Math.floor(state.session.readingSeconds / 60)}:${String(state.session.readingSeconds % 60).padStart(2, '0')}<br>
-    Avg time / problem: ${total ? formatTime(totalTime / total) : '-'}<br>
-    Conjectures: ${conjectures.length}<br>
-    Distractions: ${state.session.distractions}
+    <div class="summary-grid">
+      <div>Focus time</div>
+      <div>${formatTime(focusSeconds)}</div>
+
+      <div>Problems</div>
+      <div>
+        ${total}
+        <span class="result-pills">
+          <span class="result-c" title="Correct">${correct}</span>
+          <span class="result-i" title="Incorrect">${incorrect}</span>
+          <span class="result-u" title="Unresolved">${unresolved}</span>
+        </span>
+      </div>
+
+      <div>Reading time</div>
+      <div>${readingDisplay}</div>
+
+      <div>Avg time / problem</div>
+      <div>${total ? formatTime(totalTime / total) : '—'}</div>
+
+      <div>Conjectures</div>
+      <div>${conjectures.length}</div>
+
+      <div>Distractions</div>
+      <div>${state.session.distractions}</div>
+    </div>
   `;
   document.getElementById('modalSummary').style.display = 'flex';
 
-  const saved = await db.sessions.get(state.session.savedSessionId);
-  if (saved) {
-    document.getElementById('summaryFrustration').value = saved.frustration ?? 0;
-    document.getElementById('summaryEnergy').value = saved.energy ?? 3;
-  }
+  // Restore previously-set values if the session was already saved,
+  // otherwise show defaults.
+  const saved = state.session.savedSessionId
+    ? await db.sessions.get(state.session.savedSessionId)
+    : null;
+  document.getElementById('summaryFrustration').value = saved?.frustration ?? 0;
+  document.getElementById('summaryEnergy').value = saved?.energy ?? 3;
 }

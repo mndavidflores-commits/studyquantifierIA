@@ -705,3 +705,197 @@ a:focus-visible {
     scroll-behavior: auto !important;
   }
 }
+/* ============================================================
+   FASE 5 — MICRO-ANIMATIONS (videos 5, 8, 9)
+   Duration + easing tokens and shared keyframes.
+   Only animations that serve comprehension are included:
+   - state transitions (Session A→B→C)
+   - modal / toast appearance
+   - stagger on card grids
+   - hover feedback
+   ============================================================ */
+
+/* ---------- DURATION + EASING TOKENS ---------- */
+:root {
+  /* Durations — align with videos 5/8/9 (600 / 900 / 1000ms) */
+  --duration-instant: 100ms;   /* micro-feedback: hover, focus */
+  --duration-quick:   200ms;   /* button press, fade */
+  --duration-medium:  300ms;   /* panel switch */
+  --duration-slow:    600ms;   /* modal, cards (video 8) */
+  --duration-slower:  900ms;   /* focus mode, timer (video 9) */
+  --duration-slowest: 1000ms;  /* session transitions (video 5) */
+
+  /* Easings — one "gentle out" for most, one "quick out" for emphasis */
+  --ease-out-gentle: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quick:  cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out:     cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* Stagger interval for children of animated grids */
+  --stagger-delay: 60ms;
+}
+
+/* ---------- SHARED KEYFRAMES ---------- */
+
+/* Scale + fade: for modals, cards, timer transitions */
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Slide + fade from bottom: for toasts, cards appearing */
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Slide + fade from right: for sidebar mobile drawer items */
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Very subtle pulse: for the pomodoro circle when running */
+/* Scale stays tiny (1.0 → 1.008) so it feels like a heartbeat,
+   not a jump. Loop is slow (3s) to avoid distraction. */
+@keyframes pulse-soft {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 var(--accent-soft);
+  }
+  50% {
+    transform: scale(1.008);
+    box-shadow: 0 0 0 8px transparent;
+  }
+}
+
+/* Timer emphasis: for the huge problem timer appearing in focus mode */
+@keyframes timer-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.85);
+    letter-spacing: -0.08em;
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    letter-spacing: -0.04em;
+  }
+}
+
+/* Result card entrance: slides in from below with slight scale */
+@keyframes result-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ---------- UTILITY CLASSES ---------- */
+/* Use these directly in HTML or toggle via JS. */
+
+.animate-scale-in {
+  animation: scale-in var(--duration-slow) var(--ease-out-gentle) both;
+}
+
+.animate-slide-up {
+  animation: slide-up var(--duration-slow) var(--ease-out-gentle) both;
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right var(--duration-medium) var(--ease-out-quick) both;
+}
+
+.animate-timer-in {
+  animation: timer-in var(--duration-slower) var(--ease-out-quick) both;
+}
+
+.animate-result-in {
+  animation: result-in var(--duration-slow) var(--ease-out-gentle) both;
+}
+
+/* ---------- STAGGER (video 1 — product grid) ---------- */
+/* Apply `.stagger-children` to a container.
+   Its direct children will animate in with 60ms offset each.
+   Works with any `animation` set on the children. */
+
+.stagger-children > * {
+  animation: slide-up var(--duration-slow) var(--ease-out-gentle) both;
+  animation-delay: calc(var(--stagger-index, 0) * var(--stagger-delay));
+}
+
+/* Helper: give each child a --stagger-index via CSS counters */
+.stagger-children {
+  counter-reset: stagger;
+}
+.stagger-children > * {
+  --stagger-index: counter(stagger);
+  counter-increment: stagger;
+}
+
+/* Alternative: use nth-child for a fixed number of items (up to 8) */
+.stagger-children > *:nth-child(1) { animation-delay: calc(0 * var(--stagger-delay)); }
+.stagger-children > *:nth-child(2) { animation-delay: calc(1 * var(--stagger-delay)); }
+.stagger-children > *:nth-child(3) { animation-delay: calc(2 * var(--stagger-delay)); }
+.stagger-children > *:nth-child(4) { animation-delay: calc(3 * var(--stagger-delay)); }
+.stagger-children > *:nth-child(5) { animation-delay: calc(4 * var(--stagger-delay)); }
+.stagger-children > *:nth-child(6) { animation-delay: calc(5 * var(--stagger-delay)); }
+.stagger-children > *:nth-child(7) { animation-delay: calc(6 * var(--stagger-delay)); }
+.stagger-children > *:nth-child(8) { animation-delay: calc(7 * var(--stagger-delay)); }
+
+/* ---------- SMOOTH HOVER TRANSITIONS ---------- */
+/* One-liner to upgrade any interactive element with a proper hover curve. */
+
+.hover-lift {
+  transition:
+    transform var(--duration-quick) var(--ease-out-gentle),
+    box-shadow var(--duration-quick) var(--ease-out-gentle);
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.hover-nudge-right {
+  transition: transform var(--duration-instant) var(--ease-out-gentle);
+}
+.hover-nudge-right:hover {
+  transform: translateX(2px);
+}
+
+/* ============================================================
+   NUMBER INPUT — hide native spinner
+   Chrome's spinner renders as a white box in dark mode.
+   ============================================================ */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}

@@ -1,6 +1,6 @@
 import { state, PomodoroState, db, supabase } from './config.js';
 import { showToast } from './utils.js';
-import { transition } from './pomodoro.js';
+import { transition, finalizeSession, resumeSessionFromEnding } from './pomodoro.js';
 import {
   updatePomodoroDisplay, updatePomodoroButtons,
   stopReadingInterval, updatePomodoroModeButton
@@ -13,7 +13,7 @@ import {
   populateRecallGroups, applyRecallGroup
 } from './selectors.js';
 import { refreshSubtopicHistory, showPendingMistakes, updateUIForMode } from './reviews.js';
-import { refreshSleepHistory, refreshSleepChart, calculateHours } from './sleepNotes.js';
+import { refreshSleepHistory, refreshSleepChart, refreshNotes, calculateHours } from './sleepNotes.js';
 import { refreshGoals, refreshChecklist } from './checklistGoals.js';
 import { refreshComparison } from './comparison.js';
 
@@ -109,7 +109,6 @@ export function initEvents() {
     });
   });
 
-  // NOTE: Guest mode removed in R1 (owner-only app). Safe no-op.
   const btnGuest = document.getElementById('btn-guest');
   if (btnGuest) btnGuest.addEventListener('click', () => {
     localStorage.setItem('studyquantifier_guest', 'true');
@@ -177,27 +176,15 @@ export function initEvents() {
     await handleReset();
   });
 
-  // ===================== RESET WITH LOSS AVERSION (video 3) =====================
-  /**
-   * Loss aversion: instead of a generic "session will be lost", we compute
-   * exactly what the user stands to lose — problems registered, minutes
-   * of focus, conjectures saved — and show it in the confirm dialog.
-   *
-   * If there's literally nothing to lose, skip the confirm entirely and
-   * reset silently. Removing friction when there's no risk is itself a
-   * UX win (video 3: "don't make users think when you already know the
-   * answer").
-   */
+  // ===================== RESET (loss aversion) =====================
   async function handleReset() {
     const isIdle = state.session.state === PomodoroState.IDLE;
     if (isIdle) {
-      // Nothing running. Silent reset.
       transition(PomodoroState.IDLE);
       refreshActivePanels();
       return;
     }
 
-    // Gather what would be lost if the user resets right now.
     let problemCount = 0;
     let conjectureCount = 0;
     const focusSeconds = state.session.totalFocusSeconds || state.session.elapsedTotal || 0;
@@ -213,26 +200,18 @@ export function initEvents() {
         .count();
     }
 
-    // If nothing to lose, skip the confirm.
     const hasLoss = problemCount > 0 || conjectureCount > 0 || focusMinutes > 0;
     if (hasLoss) {
       const parts = [];
-      if (problemCount > 0) {
-        parts.push(`${problemCount} problem${problemCount === 1 ? '' : 's'}`);
-      }
-      if (focusMinutes > 0) {
-        parts.push(`${focusMinutes} min of focus`);
-      }
-      if (conjectureCount > 0) {
-        parts.push(`${conjectureCount} conjecture${conjectureCount === 1 ? '' : 's'}`);
-      }
+      if (problemCount > 0) parts.push(`${problemCount} problem${problemCount === 1 ? '' : 's'}`);
+      if (focusMinutes > 0) parts.push(`${focusMinutes} min of focus`);
+      if (conjectureCount > 0) parts.push(`${conjectureCount} conjecture${conjectureCount === 1 ? '' : 's'}`);
 
       const lostList = parts.length === 1
         ? parts[0]
         : parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1];
 
       const message = `Reset? You'll lose ${lostList}.\n\nThis can't be undone.`;
-
       if (!confirm(message)) return;
     }
 
@@ -259,25 +238,34 @@ export function initEvents() {
     document.getElementById('modalProblemDetail').style.display = 'none';
   });
 
-  // ===================== SAVE SESSION SUMMARY =====================
+  // ===================== SESSION SUMMARY MODAL =====================
+  // Three actions, each with a clear purpose:
+  //   - Save session   → finalize (write pomodoro to DB), persist mood, end.
+  //   - Keep studying  → user pressed STOP by mistake; restore previous state.
+  //   - Discard        → delete everything, end.
+  //
+  // IMPORTANT: nothing was saved when the modal appeared. The save only
+  // happens when the user explicitly confirms via "Save session".
+
+  // --- Save session ---
   const btnSaveSummary = document.getElementById('btnSaveSummary');
   if (btnSaveSummary) btnSaveSummary.addEventListener('click', async () => {
-    const sessionId = state.session.savedSessionId;
-    if (!sessionId) {
-      showToast('No session to save.');
-      return;
-    }
-
     const frustration = parseInt(document.getElementById('summaryFrustration').value, 10) || 0;
     const energy = parseInt(document.getElementById('summaryEnergy').value, 10) || 3;
 
-    const existing = await db.sessions.get(sessionId);
-    if (existing) {
-      await saveLocalAndOutbox('sessions', {
-        ...existing,
-        frustration,
-        energy
-      }, 'id');
+    // Write the pomodoro record now. Until this call, the session
+    // existed only as a tempId + child problems.
+    const sessionId = await finalizeSession();
+
+    if (sessionId) {
+      const existing = await db.sessions.get(sessionId);
+      if (existing) {
+        await saveLocalAndOutbox('sessions', {
+          ...existing,
+          frustration,
+          energy
+        }, 'id');
+      }
     }
 
     document.getElementById('modalSummary').style.display = 'none';
@@ -285,26 +273,26 @@ export function initEvents() {
     refreshActivePanels();
   });
 
+  // --- Keep studying (undo STOP) ---
+  const btnResumeSession = document.getElementById('btnResumeSession');
+  if (btnResumeSession) btnResumeSession.addEventListener('click', () => {
+    document.getElementById('modalSummary').style.display = 'none';
+    resumeSessionFromEnding();
+    refreshActivePanels();
+  });
+
+  // --- Discard (delete everything) ---
   const btnCancelSummary = document.getElementById('btnCancelSummary');
   if (btnCancelSummary) btnCancelSummary.addEventListener('click', async () => {
-    const sessionId = state.session.savedSessionId;
     const tempId = state.session.tempId;
     const userId = state.currentSession?.user?.id;
 
-    if (sessionId && userId) {
+    // The session was never saved (finalizeSession wasn't called), so we
+    // only need to clean up child problems/conjectures + any temp records.
+    if (tempId && userId) {
       const now = new Date().toISOString();
-      const childProblems = await db.sessions.where('sessionId').equals(sessionId).toArray();
-      const childConjectures = await db.conjectures.where('sessionId').equals(sessionId).toArray();
-
-      await db.sessions.delete(sessionId);
-      await db.outbox.put({
-        table: 'sessions',
-        recordId: sessionId,
-        operation: 'delete',
-        data: { id: sessionId, userId, deletedAt: now },
-        onConflict: 'id',
-        createdAt: now
-      });
+      const childProblems = await db.sessions.where('sessionId').equals(tempId).toArray();
+      const childConjectures = await db.conjectures.where('sessionId').equals(tempId).toArray();
 
       for (const p of childProblems) {
         await db.sessions.delete(p.id);
@@ -328,11 +316,6 @@ export function initEvents() {
           onConflict: 'id',
           createdAt: now
         });
-      }
-
-      if (tempId) {
-        await db.sessions.where('sessionId').equals(tempId).delete();
-        await db.conjectures.where('sessionId').equals(tempId).delete();
       }
     }
 
@@ -666,6 +649,12 @@ export function initEvents() {
         closeDrawer();
       }
     });
+  });
+
+  // ===================== NOTES FILTERS =====================
+  ['notesFilterSubject', 'notesFilterSubtopic', 'notesFilterChapter'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', () => refreshNotes());
   });
 
   // ===================== COMPARISON PANEL =====================

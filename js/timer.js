@@ -296,5 +296,8 @@ if (btnSaveConjectureEl) {
 
     document.getElementById('conjectureText').value = '';
     showToast('Conjecture saved');
+
+    // NEW: refresh the list below the timer
+    await refreshSessionConjectures();
   });
 }

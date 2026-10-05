@@ -241,10 +241,10 @@ export async function populateSections(subject, book) {
   sel.innerHTML = '';
 
   if (!subject || !book) {
-    sel.innerHTML = '<option value="">—</option>';
-    if (addRow) addRow.style.display = 'none';
-    return;
-  }
+  sel.innerHTML = '<option value="">No section</option>';
+  if (addRow) addRow.style.display = 'none';
+  return;
+}
 
   const baseSections = ['Solved problems', 'Proposed problems'];
   baseSections.forEach(name => {

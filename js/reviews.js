@@ -151,10 +151,22 @@ export async function refreshSubtopicHistory() {
 
   if (!subtopicId || subtopicId === '__add__') return;
 
-  let problems = await db.sessions
+  // Pull all problems once, then normalize comparisons in JS.
+  // Data can have subtopicId as number OR string, and book as null,
+  // undefined, or '' — all of which should be treated as equivalent.
+  const allProblems = await db.sessions
     .where('type').equals('problem')
-    .and(p => p.subtopicId === subtopicId && p.book === currentBook)
     .toArray();
+
+  const pSubtopicNorm = String(subtopicId ?? '');
+  const pBookNorm     = (currentBook == null) ? '' : String(currentBook);
+
+  let problems = allProblems.filter(p => {
+    if (String(p.subtopicId ?? '') !== pSubtopicNorm) return false;
+    const pBook = (p.book == null) ? '' : String(p.book);
+    if (pBook !== pBookNorm) return false;
+    return true;
+  });
 
   if (currentMode !== 'B') {
     problems = problems.filter(p => p.mode === currentMode);

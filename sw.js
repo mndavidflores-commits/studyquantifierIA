@@ -1,10 +1,7 @@
 // ===================== CONFIG =====================
-// Bump this version string whenever you push updates — this forces all
-// clients to fetch the new assets and drop the old cache.
-const CACHE_VERSION = 'studyquantifier-v6';
+const CACHE_VERSION = 'studyquantifier-v7';
 const CACHE_NAME = CACHE_VERSION;
 
-// Local assets — cache-first, always offline-available.
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -40,11 +37,6 @@ const STATIC_ASSETS = [
   './icons/icon-maskable-512.png'
 ];
 
-// Third-party origins that we want to cache at runtime (cache-first, then network).
-// - unpkg.com            → Lucide icons
-// - cdn.jsdelivr.net     → Chart.js, Chart.js date adapter, ts-fsrs, Supabase JS
-// - fonts.googleapis.com → CSS de Google Fonts (Fraunces, Inter, JetBrains Mono)
-// - fonts.gstatic.com    → archivos .woff2 reales de las fuentes
 const RUNTIME_CACHE_HOSTS = [
   'unpkg.com',
   'cdn.jsdelivr.net',
@@ -52,7 +44,6 @@ const RUNTIME_CACHE_HOSTS = [
   'fonts.gstatic.com'
 ];
 
-// Supabase API — never cache.
 const NEVER_CACHE_HOST = 'wrtmlucrxzewynnnikzh.supabase.co';
 
 // ===================== INSTALL =====================

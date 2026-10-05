@@ -159,8 +159,7 @@ export async function syncAll({ silent = false } = {}) {
  *
  * For tables WITHOUT an `id` column (see TABLES_WITHOUT_ID), the natural key
  * (`data.key`) is used as the outbox `recordId` and no `id` field is written
- * to the local record. This avoids generating throwaway UUIDs that would
- * never reach the server and could shadow each other in the outbox.
+ * to the local record.
  *
  * @param {string} collection - Dexie collection name (identical to the Supabase table name)
  * @param {object} data - Record data
@@ -187,15 +186,12 @@ export async function saveLocalAndOutbox(collection, data, onConflict = 'id') {
     deletedAt: null
   };
 
-  // Only tables that actually have an `id` column should carry one locally.
   if (!isKeyBased) {
     record.id = id;
   }
 
   await db[collection].put(record);
 
-  // Build the payload for the outbox — strip `id` for key-based tables in
-  // case any caller accidentally passed one in.
   const payload = { ...record };
   if (isKeyBased) {
     delete payload.id;
@@ -218,10 +214,6 @@ export async function saveLocalAndOutbox(collection, data, onConflict = 'id') {
 /**
  * After a pomodoro session is created with a real UUID, update all child
  * records (problems + conjectures) that were linked to the temporary session id.
- *
- * Before enqueuing the updated versions, any pending outbox entries for these
- * records are removed — otherwise the server would receive both the old and
- * new payloads for the same rows, briefly creating duplicate state.
  */
 export async function fixSessionId(tempId, realSessionId) {
   if (!state.currentSession?.user) return;
@@ -231,7 +223,6 @@ export async function fixSessionId(tempId, realSessionId) {
   const problems = await db.sessions.where('sessionId').equals(tempId).toArray();
   const conjectures = await db.conjectures.where('sessionId').equals(tempId).toArray();
 
-  // Drop any queued ops for these records before queuing the corrected versions.
   const staleIds = [
     ...problems.map(p => p.id),
     ...conjectures.map(c => c.id)

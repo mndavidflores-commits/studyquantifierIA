@@ -2,6 +2,13 @@
    Studyquantifier — Layout
    Sidebar + content area + panel states
    Dark mode only.
+
+   FASE 5 additions:
+   - Duration/easing tokens everywhere (no more magic ms)
+   - Sidebar items slide-in on initial load
+   - Panel transitions (A → B → C) use the token system
+   - Focus mode: timer enters with `timer-in`
+   - Mobile drawer: content slide-in
    ============================================================ */
 
 /* ---------- APP CONTAINER ---------- */
@@ -77,9 +84,6 @@
   padding: 0 var(--space-sm);
 }
 
-/* Spacing balance — video 2, Mistake 12.
-   Compact enough that all 9 items fit without scroll on common
-   viewports, but still clearly separated into groups. */
 .nav-group {
   margin-bottom: var(--space-sm);
   padding-bottom: var(--space-sm);
@@ -103,6 +107,7 @@
   opacity: 0.8;
 }
 
+/* Tab buttons with nudge-right hover feedback */
 .tab-btn {
   display: flex;
   align-items: center;
@@ -122,13 +127,18 @@
   letter-spacing: 0;
   text-align: left;
   cursor: pointer;
-  transition: background 150ms ease-out, color 150ms ease-out, border-color 150ms ease-out;
+  transition:
+    background var(--duration-instant) var(--ease-out-gentle),
+    color var(--duration-instant) var(--ease-out-gentle),
+    border-color var(--duration-instant) var(--ease-out-gentle),
+    padding-left var(--duration-quick) var(--ease-out-gentle);
 }
 
 .tab-btn:hover {
   background: var(--ink-soft);
   color: var(--paper);
   transform: none;
+  padding-left: 18px; /* subtle nudge to the right */
 }
 
 .tab-btn.active {
@@ -143,12 +153,21 @@
   height: 16px;
   flex-shrink: 0;
   color: currentColor;
+  transition: color var(--duration-instant) var(--ease-out-gentle);
 }
 
 .tab-btn.active i,
 .tab-btn.active svg {
   color: var(--accent);
 }
+
+/* Stagger nav items on initial load (only once, then static) */
+.sidebar-nav .nav-group {
+  animation: slide-in-right var(--duration-slow) var(--ease-out-gentle) both;
+}
+.sidebar-nav .nav-group:nth-child(1) { animation-delay: calc(0 * var(--stagger-delay)); }
+.sidebar-nav .nav-group:nth-child(2) { animation-delay: calc(1 * var(--stagger-delay)); }
+.sidebar-nav .nav-group:nth-child(3) { animation-delay: calc(2 * var(--stagger-delay)); }
 
 /* ---------- SIDEBAR FOOTER ---------- */
 .sidebar-footer {
@@ -203,10 +222,21 @@
   padding: 0 var(--grid-margin);
   border-bottom: 1px solid var(--ink-border);
   background: transparent;
+  transition:
+    transform var(--duration-medium) var(--ease-out-gentle),
+    opacity var(--duration-medium) var(--ease-out-gentle);
 }
 
 #topbar.hidden {
   display: none;
+}
+
+/* When topbar hides via a fade, we can't use display:none.
+   This rule gives a graceful slide-up when JS adds .fade-out. */
+#topbar.fade-out {
+  transform: translateY(-100%);
+  opacity: 0;
+  pointer-events: none;
 }
 
 .mini-topbar-actions {
@@ -235,7 +265,7 @@
 
 .panel.active {
   display: block;
-  animation: fade-in 300ms ease-out;
+  animation: fade-in var(--duration-medium) var(--ease-out-gentle);
 }
 
 /* ---------- PANEL SESSION special handling ---------- */
@@ -268,7 +298,9 @@
   max-width: 1400px;
   margin: 0 auto;
   padding: var(--space-md) var(--grid-margin);
-  transition: opacity 400ms ease-out, transform 400ms ease-out;
+  transition:
+    opacity var(--duration-slow) var(--ease-out-gentle),
+    transform var(--duration-slow) var(--ease-out-gentle);
 }
 
 #idle-view.hidden {
@@ -295,7 +327,7 @@
 #active-view {
   display: none;
   opacity: 0;
-  transition: opacity 600ms ease-out;
+  transition: opacity var(--duration-slow) var(--ease-out-gentle);
   width: 100%;
   position: relative;
 }
@@ -304,9 +336,10 @@
   display: flex;
   flex-direction: row;
   opacity: 1;
-  padding: var(--space-lg) var(--grid-margin);
+  /* Extra top padding clears the pomo-float (top:24px + ~44px height + gap). */
+  padding: calc(var(--space-xl) + var(--space-md)) var(--grid-margin) var(--space-lg);
   gap: var(--space-md);
-  animation: fade-in 600ms ease-out;
+  animation: fade-in var(--duration-slow) var(--ease-out-gentle);
 }
 
 /* ---------- LEFT PANEL ---------- */
@@ -379,6 +412,7 @@
 }
 
 /* ---------- TIMER DISPLAY (regular state) ---------- */
+
 .timer-display {
   font-family: var(--font-mono);
   font-weight: 700;
@@ -389,6 +423,9 @@
   text-align: center;
   margin: var(--space-md) 0 var(--space-sm);
   font-variant-numeric: tabular-nums;
+  transition:
+    font-size var(--duration-slow) var(--ease-out-gentle),
+    margin var(--duration-slow) var(--ease-out-gentle);
 }
 
 #timerLabel {
@@ -400,6 +437,7 @@
   letter-spacing: 0.15em;
   color: var(--paper-mute);
   margin-bottom: var(--space-md);
+  transition: color var(--duration-medium) var(--ease-out-gentle);
 }
 
 /* ---------- CONJECTURE INLINE ---------- */
@@ -414,6 +452,10 @@
   border-radius: var(--radius-md);
   max-width: 640px;
   width: 100%;
+  transition:
+    background var(--duration-medium) var(--ease-out-gentle),
+    border-color var(--duration-medium) var(--ease-out-gentle),
+    padding var(--duration-slower) var(--ease-out-quick);
 }
 
 .conjecture-line label {
@@ -432,8 +474,7 @@
 
 /* ============================================================
    POMO FLOAT
-   Fixed position — topbar is hidden during active session,
-   so top offset is a small constant from viewport.
+   Fixed position — topbar is hidden during active session.
    ============================================================ */
 #pomo-float {
   position: fixed;
@@ -448,7 +489,10 @@
   align-items: center;
   gap: var(--space-xs);
   z-index: 100;
-  transition: transform 300ms ease-out, opacity 300ms ease-out;
+  transition:
+    transform var(--duration-medium) var(--ease-out-gentle),
+    opacity var(--duration-medium) var(--ease-out-gentle);
+  animation: slide-up var(--duration-slow) var(--ease-out-gentle) both;
 }
 
 #pomo-float.hidden {
@@ -480,6 +524,11 @@
   font-size: 0.85rem;
   text-transform: none;
   letter-spacing: 0;
+  transition:
+    background var(--duration-instant) var(--ease-out-gentle),
+    border-color var(--duration-instant) var(--ease-out-gentle),
+    color var(--duration-instant) var(--ease-out-gentle),
+    transform var(--duration-instant) var(--ease-out-gentle);
 }
 
 #pomo-float button:hover {
@@ -488,8 +537,12 @@
   color: var(--paper);
 }
 
+#pomo-float button:active {
+  transform: scale(0.94);
+}
+
 /* ============================================================
-   CARD RESULT (State C — paused/stopped)
+   CARD RESULT (State C)
    ============================================================ */
 #cardResult {
   width: 100%;
@@ -529,8 +582,6 @@
 
 /* ============================================================
    FOCUS MODE (Session State B — timer running)
-   Hides sidebar, topbar, panel header, and everything except
-   the timer + conjecture input + reading float.
    ============================================================ */
 
 .app-container:has(#active-view.timer-running) #sidebar {
@@ -541,7 +592,7 @@
   display: none !important;
 }
 
-.app-container:has(#active-view.timer-running) .panel-header {
+.app-container:has(#active-view.active) .panel-header {
   display: none !important;
 }
 
@@ -568,10 +619,13 @@
   gap: var(--space-2xl);
 }
 
+/* The huge timer enters with a dedicated animation (video 9) */
+
 #active-view.timer-running .timer-display {
   font-size: clamp(6rem, 18vw, 14rem);
   margin: 0;
   letter-spacing: -0.04em;
+  /* No animation — the transition on .timer-display handles both directions */
 }
 
 #active-view.timer-running #timerLabel {
@@ -579,6 +633,8 @@
   color: var(--paper-mute);
   letter-spacing: 0.2em;
   margin: 0;
+  animation: fade-in var(--duration-slower) var(--ease-out-gentle) both;
+  animation-delay: 200ms;
 }
 
 #active-view.timer-running .conjecture-line {
@@ -587,6 +643,8 @@
   border: none;
   padding: 0;
   margin: 0;
+  animation: slide-up var(--duration-slower) var(--ease-out-gentle) both;
+  animation-delay: 400ms;
 }
 
 .app-container:has(#active-view.timer-running) #reading-float {
@@ -602,6 +660,17 @@
   margin-bottom: var(--space-xs);
   overflow: hidden;
   background: var(--ink-soft);
+  transition:
+    background var(--duration-instant) var(--ease-out-gentle),
+    box-shadow var(--duration-quick) var(--ease-out-gentle);
+}
+
+.session-group:hover {
+  background: var(--ink);
+}
+
+.session-group.open {
+  box-shadow: var(--shadow-sm);
 }
 
 .session-header {
@@ -615,7 +684,9 @@
   font-size: 0.85rem;
   color: var(--paper-soft);
   user-select: none;
-  transition: background 150ms ease-out, color 150ms ease-out;
+  transition:
+    background var(--duration-instant) var(--ease-out-gentle),
+    color var(--duration-instant) var(--ease-out-gentle);
 }
 
 .session-header:hover {
@@ -624,7 +695,7 @@
 }
 
 .session-header .arrow {
-  transition: transform 200ms ease-out;
+  transition: transform var(--duration-quick) var(--ease-out-gentle);
   color: var(--paper-mute);
 }
 
@@ -636,6 +707,7 @@
   display: none;
   padding: var(--space-xs) var(--space-sm) var(--space-sm);
   border-top: 1px solid var(--ink-border);
+  animation: slide-up var(--duration-medium) var(--ease-out-gentle) both;
 }
 
 .session-group.open .session-content {
@@ -663,7 +735,41 @@
 }
 
 /* ============================================================
-   ANIMATIONS
+   LOAD MORE BUTTON (History)
+   ============================================================ */
+.load-more-btn {
+  display: block;
+  margin: var(--space-md) auto 0;
+  padding: 10px 20px;
+  background: transparent;
+  color: var(--paper-soft);
+  border: 1px solid var(--ink-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition:
+    background var(--duration-quick) var(--ease-out-gentle),
+    color var(--duration-quick) var(--ease-out-gentle),
+    border-color var(--duration-quick) var(--ease-out-gentle),
+    transform var(--duration-quick) var(--ease-out-gentle);
+}
+
+.load-more-btn:hover {
+  background: var(--ink-soft);
+  color: var(--paper);
+  border-color: var(--paper-mute);
+}
+
+.load-more-btn:active {
+  transform: scale(0.98);
+}
+
+/* ============================================================
+   ANIMATIONS (legacy fade-in for panels)
    ============================================================ */
 @keyframes fade-in {
   from { opacity: 0; }

@@ -2,6 +2,15 @@
    Studyquantifier — Component styles
    Pomodoro, tables, badges, recall, checklist, charts wrappers
    Dark mode only.
+
+   FASE 5 additions:
+   - Pomodoro circle pulse when running
+   - Button press feedback + hover lift
+   - Modal scale-in entrance
+   - Toast slide-up entrance
+   - Result card slide-up entrance
+   - Timer entrance in focus mode
+   - Stagger on cards
    ============================================================ */
 
 /* ============================================================
@@ -58,7 +67,15 @@
   color: var(--paper);
   letter-spacing: -0.04em;
   font-variant-numeric: tabular-nums;
-  transition: border-color 300ms ease-out;
+  transition:
+    border-color var(--duration-medium) var(--ease-out-gentle),
+    background var(--duration-medium) var(--ease-out-gentle);
+}
+
+/* When the pomodoro is running (JS toggles .running), a very subtle
+   heartbeat pulse. Not aggressive — 3s loop, 0.8% scale. */
+.pomo-circle.running {
+  animation: pulse-soft 3s var(--ease-in-out) infinite;
 }
 
 .pomo-circle.break {
@@ -76,6 +93,7 @@
   letter-spacing: 0.15em;
   color: var(--paper-mute);
   margin-bottom: var(--space-sm);
+  transition: color var(--duration-medium) var(--ease-out-gentle);
 }
 
 #pomoControls {
@@ -95,7 +113,7 @@
   margin-top: var(--space-sm);
 }
 
-/* Reading block (inside idle pomo-card — hidden in idle view via patch below) */
+/* Reading block (hidden in idle view via the rule below) */
 .reading-block {
   display: flex;
   align-items: center;
@@ -170,11 +188,13 @@
   border: none;
   padding: 4px 8px;
   border-radius: var(--radius-sm);
-  transition: opacity 200ms ease-out, background 200ms ease-out;
+  transition: opacity var(--duration-quick) var(--ease-out-gentle),
+              background var(--duration-quick) var(--ease-out-gentle);
 }
 
 .app-container:has(#active-view.timer-running) #reading-float {
   display: inline-flex !important;
+  animation: slide-in-right var(--duration-medium) var(--ease-out-quick) both;
 }
 
 #reading-float:hover,
@@ -236,6 +256,7 @@
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;
+  animation: slide-up var(--duration-slow) var(--ease-out-gentle) both;
 }
 
 .panel-header h1 {
@@ -257,19 +278,26 @@
 }
 
 /* ============================================================
-   PROGRESS BAR (more visible)
+   PROGRESS BAR
    ============================================================ */
 .progress-bar {
   border: 1px solid var(--ink-border);
 }
 
 /* ============================================================
-   IDLE VIEW — compact, no stretch, no scroll
+   IDLE VIEW — compact, no stretch
    ============================================================ */
 #idle-view {
   align-items: start !important;
   padding: var(--space-md) var(--grid-margin) !important;
 }
+
+/* Stagger the two main cards (config + pomo) on entry */
+#idle-view .card {
+  animation: slide-up var(--duration-slow) var(--ease-out-gentle) both;
+}
+#idle-view .card:nth-child(1) { animation-delay: 0ms; }
+#idle-view .card:nth-child(2) { animation-delay: var(--stagger-delay); }
 
 .config-card {
   display: block !important;
@@ -280,7 +308,7 @@
   align-content: start !important;
 }
 
-/* Hide reading block + distracted button in idle view — they belong to session */
+/* Hide reading block + distracted button in idle view */
 #idle-view .reading-block,
 #idle-view #btnDistract {
   display: none !important;
@@ -288,14 +316,13 @@
 
 /* ============================================================
    FOCUS MODE
-   Hide sidebar + pomo-float remains centered when session active.
    ============================================================ */
 .app-container:has(#active-view.active) #sidebar {
   display: none !important;
 }
 
 /* ============================================================
-   TABLES (generic — used everywhere)
+   TABLES (generic)
    ============================================================ */
 table {
   width: 100%;
@@ -328,6 +355,10 @@ tr:last-child td {
   border-bottom: none;
 }
 
+tbody tr {
+  transition: background var(--duration-instant) var(--ease-out-gentle);
+}
+
 tbody tr:hover {
   background: rgba(255, 248, 240, 0.02);
 }
@@ -341,7 +372,6 @@ td.num,
 
 /* ============================================================
    RESULT BADGES (C / I / U)
-   Palette: bien → olive, mal → oxblood, no resuelto → slate blue.
    ============================================================ */
 .result-c,
 .result-i,
@@ -358,23 +388,27 @@ td.num,
   letter-spacing: 0;
   text-transform: uppercase;
   line-height: 1;
+  transition: transform var(--duration-instant) var(--ease-out-gentle);
 }
 
-/* Correct — Dusty Olive filled */
+.result-c:hover,
+.result-i:hover,
+.result-u:hover {
+  transform: scale(1.08);
+}
+
 .result-c {
   background: var(--ok);
   color: var(--ink);
   border: 1px solid var(--ok);
 }
 
-/* Incorrect — Oxblood filled */
 .result-i {
   background: var(--accent);
   color: var(--paper);
   border: 1px solid var(--accent);
 }
 
-/* Unresolved — Slate Blue filled */
 .result-u {
   background: var(--pending);
   color: var(--paper);
@@ -382,7 +416,7 @@ td.num,
 }
 
 /* ============================================================
-   RESULT TOGGLE GROUP (Result form — data-val aware)
+   RESULT TOGGLE GROUP (data-val aware)
    ============================================================ */
 .toggle-group .toggle-btn[data-val="correct"] {
   border-color: var(--ok);
@@ -430,7 +464,7 @@ td.num,
 }
 
 /* ============================================================
-   RECALL GROUP LIST (Mode B — Anki style)
+   RECALL GROUP LIST (Mode B)
    ============================================================ */
 .recall-group-list {
   display: flex;
@@ -457,7 +491,10 @@ td.num,
   border-left: 2px solid transparent;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: background 150ms ease-out, border-color 150ms ease-out;
+  transition:
+    background var(--duration-instant) var(--ease-out-gentle),
+    border-color var(--duration-instant) var(--ease-out-gentle),
+    transform var(--duration-instant) var(--ease-out-gentle);
   user-select: none;
   color: var(--paper-soft);
 }
@@ -466,6 +503,7 @@ td.num,
   background: var(--ink);
   border-left-color: var(--accent);
   color: var(--paper);
+  transform: translateX(2px);
 }
 
 .recall-group-item.active {
@@ -494,6 +532,7 @@ td.num,
   border-color: var(--ink-border);
   border-left-color: transparent;
   color: var(--paper-mute);
+  transform: none;
 }
 
 .recall-group-label {
@@ -515,6 +554,7 @@ td.num,
   font-weight: 600;
   font-size: 0.72rem;
   line-height: 1.4;
+  transition: background var(--duration-instant) var(--ease-out-gentle);
 }
 
 /* ============================================================
@@ -540,9 +580,13 @@ td.num,
   padding: 8px 0;
   border-bottom: 1px solid var(--ink-border);
   margin-bottom: 0;
+  transition: background var(--duration-instant) var(--ease-out-gentle);
 }
 
-/* Custom square checkbox — 20x20px, accent outline */
+#checklistContainer label:hover {
+  background: rgba(255, 248, 240, 0.02);
+}
+
 #checklistContainer input[type="checkbox"] {
   appearance: none;
   -webkit-appearance: none;
@@ -555,11 +599,18 @@ td.num,
   position: relative;
   flex-shrink: 0;
   margin: 0;
-  transition: background 150ms ease-out, border-color 150ms ease-out;
+  transition:
+    background var(--duration-quick) var(--ease-out-gentle),
+    border-color var(--duration-quick) var(--ease-out-gentle),
+    transform var(--duration-instant) var(--ease-out-gentle);
 }
 
 #checklistContainer input[type="checkbox"]:hover {
   background-color: var(--accent-soft);
+}
+
+#checklistContainer input[type="checkbox"]:active {
+  transform: scale(0.92);
 }
 
 #checklistContainer input[type="checkbox"]:checked {
@@ -577,6 +628,7 @@ td.num,
   border: solid var(--paper);
   border-width: 0 2px 2px 0;
   transform: rotate(45deg);
+  animation: scale-in var(--duration-quick) var(--ease-out-gentle) both;
 }
 
 /* ============================================================
@@ -641,13 +693,21 @@ canvas {
   text-transform: uppercase;
   letter-spacing: 0.1em;
   cursor: pointer;
-  transition: background 150ms ease-out, color 150ms ease-out;
+  transition:
+    background var(--duration-quick) var(--ease-out-gentle),
+    color var(--duration-quick) var(--ease-out-gentle),
+    transform var(--duration-instant) var(--ease-out-gentle);
 }
 
 .chart-filter-btn:hover,
 .chart-toggle-btn:hover {
   background: var(--accent-soft);
   transform: none;
+}
+
+.chart-filter-btn:active,
+.chart-toggle-btn:active {
+  transform: scale(0.97);
 }
 
 .chart-filter-btn.active,
@@ -665,7 +725,7 @@ canvas {
 }
 
 /* ============================================================
-   FORM RESULT B (Mode B rating)
+   FORM RESULT B
    ============================================================ */
 #formResultB {
   margin-top: var(--space-md);
@@ -723,7 +783,7 @@ canvas {
 }
 
 /* ============================================================
-   COMPACT POMO CARD (no reading block)
+   COMPACT POMO CARD
    ============================================================ */
 .pomo-card .pomo-circle {
   margin-top: var(--space-md);
@@ -731,7 +791,7 @@ canvas {
 }
 
 /* ============================================================
-   BETTER EMPTY-STATE PLACEHOLDER COLORING
+   EMPTY-STATE PLACEHOLDER COLORING
    ============================================================ */
 select option[value=""] {
   color: var(--paper-mute);
@@ -740,7 +800,6 @@ select option[value=""] {
 /* ============================================================
    HISTORY SESSION GROUP — details & meta
    ============================================================ */
-
 .session-label {
   font-family: var(--font-display);
   font-weight: 600;
@@ -816,20 +875,56 @@ select option[value=""] {
 }
 
 /* ============================================================
-   FASE 2 — UX POLISH (video 2 — 15 mistakes)
-   Applied AFTER all previous rules so they take precedence.
+   EMPTY STATES (video 4 — sensory language)
+   ============================================================ */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--space-xl) var(--space-md);
+  max-width: 520px;
+  margin: 0 auto;
+  animation: slide-up var(--duration-slow) var(--ease-out-gentle) both;
+}
+
+.empty-state-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.15rem;
+  color: var(--paper);
+  letter-spacing: -0.01em;
+  margin-bottom: var(--space-xs);
+  line-height: 1.3;
+}
+
+.empty-state-hint {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--paper-soft);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.empty-state-hint strong {
+  color: var(--paper);
+  font-weight: 600;
+}
+
+.empty-state-hint em {
+  color: var(--paper);
+  font-style: italic;
+}
+
+/* ============================================================
+   FASE 2 — UX POLISH (video 2)
    ============================================================ */
 
-/* --- Mistake 3: Alignment — uniform form control heights ---
-   Inputs are 44px tall. Buttons now match (except intentionally
-   small ones like icon-btn, small, and pill-shaped toggles). */
 button:not(.icon-btn):not(.small):not(.toggle-btn):not(.chart-filter-btn):not(.chart-toggle-btn):not(.tab-btn):not(.action-btn):not(.sidebar-signout):not(.sidebar-close):not(.mobile-hamburger) {
   min-height: 44px;
 }
 
-/* --- Mistake 5: Typography — reduce over-used letter-spacing ---
-   The base 0.2em on labels reads a bit "shouting". 0.15em keeps
-   the uppercase treatment but calms it down. */
 label,
 .stat-label,
 .metric-horizontal-label,
@@ -842,20 +937,15 @@ label,
   letter-spacing: 0.15em;
 }
 
-/* --- Mistake 11: Dividers — standardize to 1px solid ink-border --- */
 .session-content,
 .session-detail-grid {
   border-color: var(--ink-border);
 }
 
-/* --- Mistake 12: Spacing — make form rows breathe consistently --- */
 #problema-config > div {
   gap: 6px;
 }
 
-/* --- Mistake 7: Title hierarchy — h3 inside cards is uniform ---
-   Cards use Fraunces for h3 (a display font) at 1.1rem — quieter
-   than the panel h1 (up to 3rem) but still above body text. */
 .card h3 {
   font-family: var(--font-display);
   font-weight: 600;
@@ -863,4 +953,185 @@ label,
   letter-spacing: -0.01em;
   margin-bottom: var(--space-sm);
   color: var(--paper);
-} 
+}
+
+/* ============================================================
+   FASE 5 — ANIMATIONS APPLIED (videos 5, 8, 9)
+   ============================================================ */
+
+/* ---------- BUTTON PRESS + HOVER LIFT ---------- */
+/* Primary buttons rise slightly on hover and press down on click. */
+button.primary {
+  transition:
+    background var(--duration-quick) var(--ease-out-gentle),
+    border-color var(--duration-quick) var(--ease-out-gentle),
+    transform var(--duration-quick) var(--ease-out-gentle),
+    box-shadow var(--duration-quick) var(--ease-out-gentle);
+}
+
+button.primary:hover {
+  box-shadow: var(--shadow-md);
+}
+
+button.primary:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Every other button gets a subtle press-down. */
+button:not(.primary):not(.ghost):not(.danger):not(.icon-btn):not(.tab-btn):not(.toggle-btn):not(.chart-filter-btn):not(.chart-toggle-btn):not(.sidebar-signout):not(.sidebar-close):not(.mobile-hamburger):active {
+  transform: scale(0.98);
+}
+
+/* Icon buttons subtle scale on press */
+button.icon-btn:active {
+  transform: scale(0.94);
+}
+
+/* Toggle buttons press feedback */
+.toggle-btn:active {
+  transform: scale(0.97);
+}
+
+/* ============================================================
+   MODAL ENTRANCE (both modals)
+   ============================================================ */
+.modal-overlay {
+  animation: fade-in var(--duration-quick) var(--ease-out-gentle);
+}
+
+.modal {
+  animation: scale-in var(--duration-slow) var(--ease-out-gentle) both;
+}
+
+/* ============================================================
+   PROBLEM DETAIL MODAL — three-section layout
+   Header (fixed) / Content (scrolls) / Footer (fixed).
+   Only applies to #modalProblemDetail because it's the only
+   modal with the .btn-row footer.
+   ============================================================ */
+#modalProblemDetail .modal {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+}
+
+#modalProblemDetail .modal > h3 {
+  flex-shrink: 0;
+  margin: 0;
+  padding: var(--space-md) var(--space-lg) var(--space-sm);
+  border-bottom: 1px solid var(--ink-border);
+}
+
+#modalProblemDetail .modal > #detailContent {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-md) var(--space-lg);
+}
+
+#modalProblemDetail .modal > .btn-row {
+  flex-shrink: 0;
+  margin: 0;
+  padding: var(--space-sm) var(--space-lg) var(--space-md);
+  border-top: 1px solid var(--ink-border);
+  background: var(--ink-soft);
+  justify-content: flex-end;
+}
+
+/* ============================================================
+   SUMMARY MODAL — centered content, buttons side by side
+   ============================================================ */
+#modalSummary .modal {
+  padding: 32px;
+}
+
+#modalSummary .modal > #summaryContent {
+  margin-bottom: var(--space-md);
+}
+
+#modalSummary .modal > button {
+  margin-top: var(--space-sm);
+  margin-right: var(--space-xs);
+}
+
+/* ============================================================
+   SUMMARY GRID (dl-style content inside #summaryContent)
+   ============================================================ */
+.summary-grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px var(--space-md);
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--ink-border);
+  margin-bottom: var(--space-md);
+}
+
+.summary-grid > div:nth-child(odd) {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--paper-soft);
+}
+
+.summary-grid > div:nth-child(even) {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--paper);
+  text-align: right;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+/* ---------- TOAST ENTRANCE ---------- */
+.toast {
+  transition:
+    opacity var(--duration-medium) var(--ease-out-gentle),
+    transform var(--duration-medium) var(--ease-out-gentle);
+}
+
+/* ---------- RESULT CARD ENTRANCE (State C) ---------- */
+#cardResult {
+  animation: result-in var(--duration-slower) var(--ease-out-gentle) both;
+}
+
+/* When JS toggles display:block, the animation replays.
+   We use visibility toggle so animations work as expected. */
+
+/* ---------- SESSION GROUP ACCORDION ---------- */
+.session-group {
+  transition: box-shadow var(--duration-quick) var(--ease-out-gentle);
+}
+
+.session-group.open {
+  box-shadow: var(--shadow-sm);
+}
+
+.session-content {
+  animation: slide-up var(--duration-medium) var(--ease-out-gentle) both;
+}
+
+/* ---------- CARD HOVER (subtle) ---------- */
+/* Only cards that are interactive should lift. The .metric-card-horizontal
+   and .chart-card are not interactive, so we don't lift them. */
+
+.recall-group-item {
+  transition:
+    background var(--duration-instant) var(--ease-out-gentle),
+    border-color var(--duration-instant) var(--ease-out-gentle),
+    transform var(--duration-instant) var(--ease-out-gentle);
+}
+
+/* ---------- HISTORY DATE HEADER APPEARANCE ---------- */
+.history-date {
+  animation: slide-up var(--duration-medium) var(--ease-out-gentle) both;
+}
+
+/* ---------- TABLE ROW HOVER ---------- */
+.editable-problem {
+  transition: background var(--duration-instant) var(--ease-out-gentle);
+}

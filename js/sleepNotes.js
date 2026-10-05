@@ -20,6 +20,41 @@ export function calculateHours(bedtime, wakeup) {
   return Math.round(minutes / 60 * 10) / 10;
 }
 
+// ===================== DATE FORMATTING HELPERS =====================
+/**
+ * Formats an ISO date ("2026-10-05") into something a human reads at a
+ * glance: "Thu, Oct 5". Falls back to the raw string if parsing fails.
+ *
+ * Video 4, booking test: specific, human dates ("Friday, March 28")
+ * feel more real than machine dates ("2026-03-28").
+ */
+function formatHumanDate(iso) {
+  if (!iso) return '-';
+  try {
+    const d = new Date(iso + 'T00:00:00');
+    if (Number.isNaN(d.getTime())) return iso;
+    return d.toLocaleDateString(undefined, {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric'
+    });
+  } catch {
+    return iso;
+  }
+}
+
+/**
+ * Formats hours as "8h" or "8h 30m" depending on the decimal part.
+ * More honest than rounding 8.5 → "9h" or "8.5h".
+ */
+function formatHours(h) {
+  if (h == null || Number.isNaN(h)) return '-';
+  const whole = Math.floor(h);
+  const minutes = Math.round((h - whole) * 60);
+  if (minutes === 0) return `${whole}h`;
+  return `${whole}h ${minutes}m`;
+}
+
 // ===================== SLEEP HISTORY =====================
 export async function refreshSleepHistory() {
   const wrap = document.getElementById('sleepHistoryTable');
@@ -27,8 +62,14 @@ export async function refreshSleepHistory() {
 
   const records = await db.sleep.orderBy('date').reverse().limit(50).toArray();
 
+  // Video 4, booking test — sensory empty state instead of a cold "no records".
   if (!records.length) {
-    wrap.innerHTML = '<p style="color:var(--paper-mute);">No sleep records.</p>';
+    wrap.innerHTML = `
+      <div class="empty-state">
+        <p class="empty-state-title">Your first night's log will appear here.</p>
+        <p class="empty-state-hint">Tap <strong>Save sleep</strong> above after your next rest to start tracking quality, hours, and patterns.</p>
+      </div>
+    `;
     return;
   }
 
@@ -55,8 +96,8 @@ export async function refreshSleepHistory() {
 
   records.forEach(r => {
     html += `<tr>
-      <td>${escapeHtml(r.date)}</td>
-      <td>${r.hours}h</td>
+      <td>${escapeHtml(formatHumanDate(r.date))}</td>
+      <td>${formatHours(r.hours)}</td>
       <td>${starsHtml(r.quality)} ${r.quality}/10</td>
       <td>${format12h(r.bedtime)}</td>
       <td>${format12h(r.wakeup)}</td>
@@ -70,7 +111,6 @@ export async function refreshSleepHistory() {
   html += '</tbody></table>';
   wrap.innerHTML = html;
 
-  // Hydrate the newly-injected Lucide icons.
   if (window.lucide && typeof window.lucide.createIcons === 'function') {
     window.lucide.createIcons();
   }
@@ -80,6 +120,15 @@ export async function refreshSleepHistory() {
       const id = btn.dataset.deleteSleep;
       const userId = state.currentSession?.user?.id;
       if (!userId) return;
+
+      // Video 3, loss aversion: show exactly what the user is about to lose.
+      // Before this, the delete was silent and permanent.
+      const record = await db.sleep.get(id);
+      const confirmMessage = record
+        ? `Delete this record?\n\nYou'll lose ${formatHours(record.hours)} of sleep logged on ${formatHumanDate(record.date)}.\n\nThis can't be undone.`
+        : `Delete this sleep record?\n\nThis can't be undone.`;
+
+      if (!confirm(confirmMessage)) return;
 
       await db.sleep.delete(id);
       await db.outbox.put({
@@ -91,7 +140,7 @@ export async function refreshSleepHistory() {
         createdAt: new Date().toISOString()
       });
 
-      showToast('Sleep record deleted ✅');
+      showToast('Sleep record deleted');
       await syncAll({ silent: true });
       refreshSleepHistory();
       refreshSleepChart();
@@ -184,8 +233,26 @@ export async function refreshNotes() {
     return true;
   });
 
+  // Video 4 — reframe based on WHY the list is empty.
   if (!filtered.length) {
-    wrap.innerHTML = '<p style="color:var(--paper-mute);">No notes.</p>';
+    const hasAnyNotes = notes.length > 0;
+    if (!hasAnyNotes) {
+      // No notes at all — invite action.
+      wrap.innerHTML = `
+        <div class="empty-state">
+          <p class="empty-state-title">No notes yet.</p>
+          <p class="empty-state-hint">Add one when you save a problem — the <em>Why you didn't reach the answer</em> field becomes a note here.</p>
+        </div>
+      `;
+    } else {
+      // There are notes but filters hide them all — help the user recover.
+      wrap.innerHTML = `
+        <div class="empty-state">
+          <p class="empty-state-title">No notes match these filters.</p>
+          <p class="empty-state-hint">Try widening the <strong>Subject</strong>, <strong>Subtopic</strong>, or <strong>Chapter</strong> filters above.</p>
+        </div>
+      `;
+    }
     return;
   }
 
